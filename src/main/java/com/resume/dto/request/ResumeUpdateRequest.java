@@ -8,7 +8,7 @@ public class ResumeUpdateRequest {
 
     private Long templateId;
 
-    private Object content;
+    private String content;
 
     private String status;
 
@@ -30,11 +30,11 @@ public class ResumeUpdateRequest {
         this.templateId = templateId;
     }
 
-    public Object getContent() {
+    public String getContent() {
         return content;
     }
 
-    public void setContent(Object content) {
+    public void setContent(String content) {
         this.content = content;
     }
 

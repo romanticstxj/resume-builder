@@ -138,6 +138,143 @@
             <template #icon><t-icon name="add" /></template>
             添加教育经历
           </t-button>
+
+          <div class="section-title">项目经历</div>
+          <div
+            v-for="(proj, index) in resumeData.content.projects"
+            :key="index"
+            class="project-item"
+          >
+            <t-form-item label="项目名称">
+              <t-input v-model="proj.name" placeholder="请输入项目名称" />
+            </t-form-item>
+            <t-form-item label="时间">
+              <t-input v-model="proj.period" placeholder="如：2022-2023" />
+            </t-form-item>
+            <t-form-item label="项目描述">
+              <t-textarea
+                v-model="proj.description"
+                placeholder="请输入项目描述"
+                :autosize="{ minRows: 3 }"
+              />
+            </t-form-item>
+            <t-form-item label="技术栈">
+              <t-input v-model="proj.technologiesString" placeholder="请输入技术栈，用逗号分隔" />
+            </t-form-item>
+            <t-button
+              theme="danger"
+              variant="text"
+              size="small"
+              @click="removeProject(index)"
+            >
+              删除此项目
+            </t-button>
+          </div>
+          <t-button theme="default" variant="dashed" block @click="addProject">
+            <template #icon><t-icon name="add" /></template>
+            添加项目经历
+          </t-button>
+
+          <div class="section-title">专业技能</div>
+          <div
+            v-for="(skill, index) in resumeData.content.skills"
+            :key="index"
+            class="skill-item"
+          >
+            <t-form-item label="技能名称">
+              <t-input v-model="skill.name" placeholder="请输入技能名称" />
+            </t-form-item>
+            <t-form-item label="熟练度">
+              <t-slider v-model.number="skill.level" :min="0" :max="100" :marks="{0: '0%', 50: '50%', 100: '100%'}" />
+            </t-form-item>
+            <t-button
+              theme="danger"
+              variant="text"
+              size="small"
+              @click="removeSkill(index)"
+            >
+              删除此技能
+            </t-button>
+          </div>
+          <t-button theme="default" variant="dashed" block @click="addSkill">
+            <template #icon><t-icon name="add" /></template>
+            添加专业技能
+          </t-button>
+
+          <div class="section-title">个人总结</div>
+          <t-form-item label="总结">
+            <t-textarea
+              v-model="resumeData.content.personalSummary"
+              placeholder="请输入个人总结"
+              :autosize="{ minRows: 4 }"
+            />
+          </t-form-item>
+
+          <div class="section-title">荣誉奖项</div>
+          <div
+            v-for="(honor, index) in resumeData.content.honors"
+            :key="index"
+            class="honor-item"
+          >
+            <t-form-item label="奖项名称">
+              <t-input v-model="honor.name" placeholder="请输入奖项名称" />
+            </t-form-item>
+            <t-form-item label="获奖时间">
+              <t-input v-model="honor.date" placeholder="如：2023年" />
+            </t-form-item>
+            <t-form-item label="奖项描述">
+              <t-textarea
+                v-model="honor.description"
+                placeholder="请输入奖项描述"
+                :autosize="{ minRows: 2 }"
+              />
+            </t-form-item>
+            <t-button
+              theme="danger"
+              variant="text"
+              size="small"
+              @click="removeHonor(index)"
+            >
+              删除此奖项
+            </t-button>
+          </div>
+          <t-button theme="default" variant="dashed" block @click="addHonor">
+            <template #icon><t-icon name="add" /></template>
+            添加荣誉奖项
+          </t-button>
+
+          <div class="section-title">个人作品</div>
+          <div
+            v-for="(work, index) in resumeData.content.works"
+            :key="index"
+            class="work-item"
+          >
+            <t-form-item label="作品名称">
+              <t-input v-model="work.name" placeholder="请输入作品名称" />
+            </t-form-item>
+            <t-form-item label="作品描述">
+              <t-textarea
+                v-model="work.description"
+                placeholder="请输入作品描述"
+                :autosize="{ minRows: 2 }"
+              />
+            </t-form-item>
+            <t-form-item label="作品链接">
+              <t-input v-model="work.url" placeholder="请输入作品链接" />
+            </t-form-item>
+            <t-button
+              theme="danger"
+              variant="text"
+              size="small"
+              @click="removeWork(index)"
+            >
+              删除此作品
+            </t-button>
+          </div>
+          <t-button theme="default" variant="dashed" block @click="addWork">
+            <template #icon><t-icon name="add" /></template>
+            添加个人作品
+          </t-button>
         </t-form>
       </div>
 
@@ -187,7 +324,12 @@ const resumeData = ref({
     phone: '',
     summary: '',
     experience: [],
-    education: []
+    education: [],
+    projects: [],
+    skills: [],
+    personalSummary: '',
+    honors: [],
+    works: []
   }
 })
 
@@ -195,6 +337,324 @@ const exportOptions = [
   { content: '导出 PDF', value: 'pdf' },
   { content: '导出 Word', value: 'word' }
 ]
+
+const handleExportPdf = async () => {
+  if (!resumeId.value) {
+    MessagePlugin.warning('请先保存简历')
+    return
+  }
+
+  try {
+    // 使用前端生成完整HTML，确保所见即所得
+    const html = generateFullHtml()
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(html)
+      printWindow.document.close()
+    } else {
+      MessagePlugin.error('无法打开打印窗口，请允许弹出窗口')
+    }
+  } catch (error) {
+    MessagePlugin.error('导出失败')
+  }
+}
+
+const handleExport = async ({ value }) => {
+  if (!resumeId.value) {
+    MessagePlugin.warning('请先保存简历')
+    return
+  }
+
+  try {
+    if (value === 'pdf') {
+      // PDF导出：使用浏览器打印功能
+      const html = generateFullHtml()
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(html)
+        printWindow.document.close()
+      } else {
+        MessagePlugin.error('无法打开打印窗口，请允许弹出窗口')
+      }
+    } else if (value === 'word') {
+      // Word导出：生成MIME类型的Word文档
+      const wordHtml = generateWordHtml()
+      const blob = new Blob(['\ufeff', wordHtml], {
+        type: 'application/msword'
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${resumeData.value.title}.doc`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      MessagePlugin.success('导出成功')
+    }
+  } catch (error) {
+    console.error('导出失败:', error)
+    MessagePlugin.error('导出失败')
+  }
+}
+
+const generateWordHtml = () => {
+  const themeConfig = currentTemplate.value.themeConfig || {}
+  const fontSize = themeConfig.fontSize || 14
+  const fontSizePt = Math.round(fontSize * 0.75)
+
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+  <meta charset="utf-8">
+  <meta name=ProgId content=Word.Document>
+  <meta name=Generator content="Microsoft Word 15">
+  <meta name=Originator content="Microsoft Word 15">
+  <title>${resumeData.value.title}</title>
+  <style>
+    body {
+      font-family: ${themeConfig.fontFamily || 'Arial'};
+      font-size: ${fontSizePt}pt;
+      color: ${themeConfig.textColor || '#333333'};
+      line-height: 1.6;
+      margin: 0;
+      padding: 40pt;
+    }
+    h1 {
+      font-size: 24pt;
+      font-weight: bold;
+      color: ${themeConfig.primaryColor || '#2c3e50'};
+      margin-bottom: 8pt;
+    }
+    .contact-info {
+      font-size: 10pt;
+      color: #666666;
+      margin-bottom: 20pt;
+    }
+    .resume-section {
+      margin-bottom: 20pt;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 14pt;
+      font-weight: bold;
+      color: ${themeConfig.primaryColor || '#2c3e50'};
+      padding-bottom: 4pt;
+      margin-bottom: 10pt;
+      border-bottom: 1pt solid ${themeConfig.primaryColor || '#2c3e50'};
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4pt;
+    }
+    .item-title {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 0;
+    }
+    .item-period {
+      font-size: 10pt;
+      color: #666666;
+    }
+    .item-description, .item-meta {
+      font-size: 11pt;
+      color: ${themeConfig.textColor || '#333333'};
+      margin: 0;
+      line-height: 1.5;
+    }
+    .skills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8pt;
+    }
+    .skill-item {
+      margin-bottom: 4pt;
+    }
+    .skill-name {
+      font-weight: 500;
+    }
+    .item-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4pt;
+      margin-top: 4pt;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2pt 6pt;
+      background: ${themeConfig.secondaryColor || '#3498db'};
+      color: #ffffff;
+      border-radius: 2pt;
+      font-size: 9pt;
+    }
+    .work-link {
+      color: ${themeConfig.secondaryColor || '#3498db'};
+      text-decoration: underline;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+  ${generateWordContent()}
+</body>
+</html>`
+  return html
+}
+
+const generateWordContent = () => {
+  const sectionOrder = currentTemplate.value.sectionOrder || ['header', 'summary', 'experience', 'education', 'projects', 'skills', 'personalSummary', 'honors', 'works']
+  const content = resumeData.value.content
+  let html = ''
+
+  for (const sectionKey of sectionOrder) {
+    switch (sectionKey) {
+      case 'header':
+        html += `
+        <h1>${content.name || '姓名'}</h1>
+        <div class="contact-info">
+          ${content.email || ''}${content.email && content.phone ? ' | ' : ''}${content.phone || ''}
+        </div>`
+        break
+      case 'summary':
+        if (content.summary) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">个人简介</div>
+          <div>${content.summary}</div>
+        </div>`
+        }
+        break
+      case 'experience':
+        if (content.experience?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">工作经历</div>`
+          content.experience.forEach(exp => {
+            html += `
+          <div style="margin-bottom: 12pt;">
+            <div class="item-header">
+              <div class="item-title">${exp.company} - ${exp.position}</div>
+              <div class="item-period">${exp.period}</div>
+            </div>
+            <div class="item-description">${exp.description}</div>
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'education':
+        if (content.education?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">教育经历</div>`
+          content.education.forEach(edu => {
+            html += `
+          <div style="margin-bottom: 10pt;">
+            <div class="item-header">
+              <div class="item-title">${edu.school} - ${edu.major}</div>
+              <div class="item-period">${edu.period}</div>
+            </div>
+            <div class="item-meta">${edu.degree}</div>
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'projects':
+        if (content.projects?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">项目经历</div>`
+          content.projects.forEach(proj => {
+            html += `
+          <div style="margin-bottom: 12pt;">
+            <div class="item-header">
+              <div class="item-title">${proj.name}</div>
+              <div class="item-period">${proj.period}</div>
+            </div>
+            <div class="item-description">${proj.description}</div>`
+            if (proj.technologies?.length) {
+              html += `
+            <div class="item-tags">${proj.technologies.map(tech => `<span class="tag">${tech}</span>`).join('')}</div>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'skills':
+        if (content.skills?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">专业技能</div>
+          <div class="skills-container">`
+          content.skills.forEach(skill => {
+            html += `
+            <div class="skill-item">
+              <div class="skill-name">${skill.name}</div>
+            </div>`
+          })
+          html += `
+          </div>
+        </div>`
+        }
+        break
+      case 'personalSummary':
+        if (content.personalSummary) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">个人总结</div>
+          <div>${content.personalSummary}</div>
+        </div>`
+        }
+        break
+      case 'honors':
+        if (content.honors?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">荣誉奖项</div>`
+          content.honors.forEach(honor => {
+            html += `
+          <div style="margin-bottom: 10pt;">
+            <div class="item-header">
+              <div class="item-title">${honor.name}</div>
+              <div class="item-period">${honor.date}</div>
+            </div>`
+            if (honor.description) {
+              html += `<div class="item-description">${honor.description}</div>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'works':
+        if (content.works?.length) {
+          html += `
+        <div class="resume-section">
+          <div class="section-title">个人作品</div>`
+          content.works.forEach(work => {
+            html += `
+          <div style="margin-bottom: 10pt;">
+            <div class="item-title">${work.name}</div>`
+            if (work.description) {
+              html += `<div class="item-description">${work.description}</div>`
+            }
+            if (work.url) {
+              html += `<div class="work-link">${work.url}</div>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+    }
+  }
+  return html
+}
 
 const fetchResume = async () => {
   if (!isEdit.value) return
@@ -210,7 +670,23 @@ const fetchResume = async () => {
     // 加载模板配置
     if (res.templateId) {
       const template = await getTemplateById(res.templateId)
-      currentTemplate.value = template
+      const layout = template.layout || 'classic'
+      const themeConfig = typeof template.themeConfig === 'string'
+        ? JSON.parse(template.themeConfig)
+        : template.themeConfig
+      const sectionConfig = typeof template.sectionConfig === 'string'
+        ? JSON.parse(template.sectionConfig)
+        : template.sectionConfig
+      const sectionOrder = typeof template.sectionOrder === 'string'
+        ? JSON.parse(template.sectionOrder)
+        : template.sectionOrder
+
+      currentTemplate.value = {
+        layout,
+        themeConfig,
+        sectionConfig,
+        sectionOrder
+      }
     }
   } catch (error) {
     MessagePlugin.error('获取简历失败')
@@ -242,13 +718,24 @@ const initFromTemplate = async () => {
       if (template) {
         resumeData.value.templateId = template.id
         resumeData.value.title = template.name + '的简历'
-        currentTemplate.value = template
-        // 解析模板内容作为初始内容
-        try {
-          const templateContent = typeof template.content === 'string' ? JSON.parse(template.content) : template.content
-          resumeData.value.content = { ...resumeData.value.content, ...templateContent }
-        } catch (e) {
-          console.error('解析模板内容失败:', e)
+
+        // 加载模板配置
+        const layout = template.layout || 'classic'
+        const themeConfig = typeof template.themeConfig === 'string'
+          ? JSON.parse(template.themeConfig)
+          : template.themeConfig
+        const sectionConfig = typeof template.sectionConfig === 'string'
+          ? JSON.parse(template.sectionConfig)
+          : template.sectionConfig
+        const sectionOrder = typeof template.sectionOrder === 'string'
+          ? JSON.parse(template.sectionOrder)
+          : template.sectionOrder
+
+        currentTemplate.value = {
+          layout,
+          themeConfig,
+          sectionConfig,
+          sectionOrder
         }
         MessagePlugin.success('已应用模板')
       }
@@ -292,8 +779,8 @@ const handlePreview = async () => {
     return
   }
   try {
-    const response = await fetch(`/api/resumes/${resumeId.value}/preview`)
-    const html = await response.text()
+    // 使用ResumeRenderer生成完整HTML
+    const html = generateFullHtml()
     const previewWindow = window.open('', '_blank')
     previewWindow.document.write(html)
     previewWindow.document.close()
@@ -302,30 +789,399 @@ const handlePreview = async () => {
   }
 }
 
-const handleExport = async ({ value }) => {
-  if (!resumeId.value) {
-    MessagePlugin.warning('请先保存简历')
-    return
+const generateFullHtml = () => {
+  const themeConfig = currentTemplate.value.themeConfig || {}
+  const sectionConfig = currentTemplate.value.sectionConfig || {}
+  const fontSizePx = typeof themeConfig.fontSize === 'number' ? `${themeConfig.fontSize}px` : (themeConfig.fontSize || '14px')
+  const primaryColor = themeConfig.primaryColor || '#2c3e50'
+  const secondaryColor = themeConfig.secondaryColor || '#3498db'
+  const textColor = themeConfig.textColor || '#333333'
+
+  const hasHeaderBackground = sectionConfig.header?.background === true
+  const isHeaderCenter = sectionConfig.header?.style === 'center'
+
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${resumeData.value.title}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ${themeConfig.fontFamily || 'Arial, sans-serif'};
+      font-size: ${fontSizePx};
+      color: ${textColor};
+      background: #fff;
+      padding: 0;
+      margin: 0;
+    }
+
+    .resume-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: ${hasHeaderBackground ? '0 40px 40px 40px' : '40px'};
+      position: relative;
+    }
+
+    .resume-header {
+      margin-bottom: 30px;
+      ${isHeaderCenter ? 'text-align: center;' : ''}
+      ${hasHeaderBackground ? `
+      background: ${primaryColor};
+      color: #fff;
+      padding: 40px;
+      margin: -40px -40px 30px -40px;
+      ` : ''}
+    }
+
+    .name {
+      font-size: 32px;
+      font-weight: 700;
+      color: ${hasHeaderBackground ? '#fff' : primaryColor};
+      margin: 0 0 10px;
+    }
+
+    .contact-info {
+      font-size: 14px;
+      color: ${hasHeaderBackground ? 'rgba(255, 255, 255, 0.9)' : '#666'};
+    }
+
+    .resume-section {
+      margin-bottom: 25px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: ${primaryColor};
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid ${primaryColor};
+    }
+
+    .section-content {
+      line-height: 1.6;
+      color: ${textColor};
+    }
+
+    .experience-item,
+    .project-item,
+    .honor-item,
+    .work-item {
+      margin-bottom: 20px;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .item-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .item-period {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .item-description,
+    .item-meta {
+      font-size: 14px;
+      line-height: 1.6;
+      color: ${textColor};
+      margin: 0;
+    }
+
+    .education-item {
+      margin-bottom: 15px;
+    }
+
+    .skills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .skills-list {
+      flex-direction: column;
+    }
+
+    .skill-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skills-list .skill-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .skill-name {
+      font-weight: 500;
+    }
+
+    .skill-level {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skill-bar {
+      width: 100px;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .skill-fill {
+      height: 100%;
+      background: ${primaryColor};
+    }
+
+    .skill-text {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .item-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .item-tags .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: ${secondaryColor};
+      color: #fff;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    .work-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: ${secondaryColor};
+      text-decoration: none;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .resume-page {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="resume-page">
+    ${generateResumeContent()}
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 100);
+    };
+  <\/script>
+</body>
+</html>`
+  return html
+}
+
+const generateResumeContent = () => {
+  const sectionOrder = currentTemplate.value.sectionOrder || ['header', 'summary', 'experience', 'education', 'projects', 'skills', 'personalSummary', 'honors', 'works']
+  const content = resumeData.value.content
+  let html = ''
+
+  for (const sectionKey of sectionOrder) {
+    switch (sectionKey) {
+      case 'header':
+        html += `
+        <div class="resume-header">
+          <h1 class="name">${content.name || '姓名'}</h1>
+          <div class="contact-info">
+            ${content.email || ''}${content.email && content.phone ? ' | ' : ''}${content.phone || ''}
+          </div>
+        </div>`
+        break
+      case 'summary':
+        if (content.summary) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">个人简介</h2>
+          <p class="section-content">${content.summary}</p>
+        </div>`
+        }
+        break
+      case 'experience':
+        if (content.experience?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">工作经历</h2>`
+          content.experience.forEach(exp => {
+            html += `
+          <div class="experience-item">
+            <div class="item-header">
+              <h3 class="item-title">${exp.company} - ${exp.position}</h3>
+              <span class="item-period">${exp.period}</span>
+            </div>
+            <p class="item-description">${exp.description}</p>
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'education':
+        if (content.education?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">教育经历</h2>`
+          content.education.forEach(edu => {
+            html += `
+          <div class="education-item">
+            <div class="item-header">
+              <h3 class="item-title">${edu.school} - ${edu.major}</h3>
+              <span class="item-period">${edu.period}</span>
+            </div>
+            <p class="item-meta">${edu.degree}</p>
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'projects':
+        if (content.projects?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">项目经历</h2>`
+          content.projects.forEach(proj => {
+            html += `
+          <div class="project-item">
+            <div class="item-header">
+              <h3 class="item-title">${proj.name}</h3>
+              <span class="item-period">${proj.period}</span>
+            </div>
+            <p class="item-description">${proj.description}</p>`
+            if (proj.technologies?.length) {
+              html += `
+            <div class="item-tags">${proj.technologies.map(tech => `<span class="tag">${tech}</span>`).join('')}</div>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'skills':
+        if (content.skills?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">专业技能</h2>
+          <div class="skills-container">`
+          content.skills.forEach(skill => {
+            html += `
+            <div class="skill-item">
+              <div class="skill-name">${skill.name}</div>`
+            if (skill.level) {
+              html += `
+              <div class="skill-level">
+                <div class="skill-bar">
+                  <div class="skill-fill" style="width: ${skill.level}%"></div>
+                </div>
+                <span class="skill-text">${skill.level}%</span>
+              </div>`
+            }
+            html += `
+            </div>`
+          })
+          html += `
+          </div>
+        </div>`
+        }
+        break
+      case 'personalSummary':
+        if (content.personalSummary) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">个人总结</h2>
+          <p class="section-content">${content.personalSummary}</p>
+        </div>`
+        }
+        break
+      case 'honors':
+        if (content.honors?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">荣誉奖项</h2>`
+          content.honors.forEach(honor => {
+            html += `
+          <div class="honor-item">
+            <div class="item-header">
+              <h3 class="item-title">${honor.name}</h3>
+              <span class="item-period">${honor.date}</span>
+            </div>`
+            if (honor.description) {
+              html += `<p class="item-description">${honor.description}</p>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+      case 'works':
+        if (content.works?.length) {
+          html += `
+        <div class="resume-section">
+          <h2 class="section-title">个人作品</h2>`
+          content.works.forEach(work => {
+            html += `
+          <div class="work-item">
+            <h3 class="item-title">${work.name}</h3>`
+            if (work.description) {
+              html += `<p class="item-description">${work.description}</p>`
+            }
+            if (work.url) {
+              html += `<a class="work-link" href="${work.url}" target="_blank">${work.url}</a>`
+            }
+            html += `
+          </div>`
+          })
+          html += `</div>`
+        }
+        break
+    }
   }
-
-  try {
-    const response = await fetch(`/api/resumes/${resumeId.value}/export/${value}`)
-    if (!response.ok) throw new Error('导出失败')
-
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${resumeData.value.title}.${value === 'word' ? 'docx' : 'html'}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
-
-    MessagePlugin.success('导出成功')
-  } catch (error) {
-    MessagePlugin.error('导出失败')
-  }
+  return html
 }
 
 const handleBack = () => {
@@ -339,7 +1195,25 @@ const handleTemplateChange = async (templateId) => {
   }
   try {
     const template = await getTemplateById(templateId)
-    currentTemplate.value = template
+
+    // 构建模板配置对象
+    const layout = template.layout || 'classic'
+    const themeConfig = typeof template.themeConfig === 'string'
+      ? JSON.parse(template.themeConfig)
+      : template.themeConfig
+    const sectionConfig = typeof template.sectionConfig === 'string'
+      ? JSON.parse(template.sectionConfig)
+      : template.sectionConfig
+    const sectionOrder = typeof template.sectionOrder === 'string'
+      ? JSON.parse(template.sectionOrder)
+      : template.sectionOrder
+
+    currentTemplate.value = {
+      layout,
+      themeConfig,
+      sectionConfig,
+      sectionOrder
+    }
   } catch (error) {
     console.error('加载模板失败:', error)
   }
@@ -375,6 +1249,66 @@ const addEducation = () => {
 
 const removeEducation = (index) => {
   resumeData.value.content.education.splice(index, 1)
+}
+
+const addProject = () => {
+  if (!resumeData.value.content.projects) {
+    resumeData.value.content.projects = []
+  }
+  resumeData.value.content.projects.push({
+    name: '',
+    period: '',
+    description: '',
+    technologiesString: ''
+  })
+}
+
+const removeProject = (index) => {
+  resumeData.value.content.projects.splice(index, 1)
+}
+
+const addSkill = () => {
+  if (!resumeData.value.content.skills) {
+    resumeData.value.content.skills = []
+  }
+  resumeData.value.content.skills.push({
+    name: '',
+    level: 80
+  })
+}
+
+const removeSkill = (index) => {
+  resumeData.value.content.skills.splice(index, 1)
+}
+
+const addHonor = () => {
+  if (!resumeData.value.content.honors) {
+    resumeData.value.content.honors = []
+  }
+  resumeData.value.content.honors.push({
+    name: '',
+    date: '',
+    description: ''
+  })
+}
+
+const removeHonor = (index) => {
+  resumeData.value.content.honors.splice(index, 1)
+}
+
+const addWork = () => {
+  if (!resumeData.value.content.works) {
+    resumeData.value.content.works = []
+  }
+  resumeData.value.content.works.push({
+    name: '',
+    description: '',
+    url: ''
+  })
+}
+
+const removeWork = (index) => {
+  resumeData.value.content.works.splice(index, 1)
 }
 
 onMounted(() => {

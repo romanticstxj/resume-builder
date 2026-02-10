@@ -24,12 +24,12 @@ public interface ResumeMapper {
     @Select("SELECT * FROM resumes WHERE id = #{id}")
     Resume findById(@Param("id") Long id);
 
-    @Insert("INSERT INTO resumes (user_id, title, template_id, content, status, is_primary, created_at, updated_at) " +
-            "VALUES (#{userId}, #{title}, #{templateId}, #{content}, #{status}, #{isPrimary}, #{createdAt}, #{updatedAt})")
+    @Insert("INSERT INTO resumes (user_id, title, template_id, content, section_order, status, is_primary, created_at, updated_at) " +
+            "VALUES (#{userId}, #{title}, #{templateId}, #{content}, #{sectionOrder}, #{status}, #{isPrimary}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(Resume resume);
 
-    @Update("UPDATE resumes SET title = #{title}, template_id = #{templateId}, content = #{content}, " +
+    @Update("UPDATE resumes SET title = #{title}, template_id = #{templateId}, content = #{content}, section_order = #{sectionOrder}, " +
             "status = #{status}, is_primary = #{isPrimary}, updated_at = #{updatedAt} WHERE id = #{id}")
     void update(Resume resume);
 

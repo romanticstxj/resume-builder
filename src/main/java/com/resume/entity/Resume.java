@@ -21,6 +21,8 @@ public class Resume {
 
     private String content;  // JSON格式存储简历内容
 
+    private String sectionOrder;  // JSON格式存储区块顺序
+
     private String status = "draft";  // draft, published
 
     private Boolean isPrimary = false;

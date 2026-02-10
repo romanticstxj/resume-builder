@@ -29,7 +29,7 @@
         <t-col :span="6" v-for="template in templates" :key="template.id">
           <t-card hover-shadow class="template-card" @click="handleView(template)">
             <div class="preview">
-              <template-preview :template-content="template.content" />
+              <template-preview :template="template" :template-content="template.content" />
             </div>
             <div class="info">
               <div class="name">{{ template.name }}</div>

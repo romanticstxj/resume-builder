@@ -1,8 +1,8 @@
 package com.resume.controller;
 
 import com.resume.dto.ApiResponse;
-import com.resume.dto.TemplateCreateRequest;
-import com.resume.dto.TemplateUpdateRequest;
+import com.resume.dto.request.TemplateCreateRequest;
+import com.resume.dto.request.TemplateUpdateRequest;
 import com.resume.entity.Template;
 import com.resume.service.TemplateService;
 import io.swagger.v3.oas.annotations.Operation;

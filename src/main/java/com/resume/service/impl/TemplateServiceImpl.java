@@ -1,7 +1,7 @@
 package com.resume.service.impl;
 
-import com.resume.dto.TemplateCreateRequest;
-import com.resume.dto.TemplateUpdateRequest;
+import com.resume.dto.request.TemplateCreateRequest;
+import com.resume.dto.request.TemplateUpdateRequest;
 import com.resume.entity.Template;
 import com.resume.repository.TemplateRepository;
 import com.resume.service.TemplateService;

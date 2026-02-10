@@ -1,8 +1,8 @@
 package com.resume.service;
 
 import com.resume.dto.Page;
-import com.resume.dto.TemplateCreateRequest;
-import com.resume.dto.TemplateUpdateRequest;
+import com.resume.dto.request.TemplateCreateRequest;
+import com.resume.dto.request.TemplateUpdateRequest;
 import com.resume.entity.Template;
 
 import java.util.List;

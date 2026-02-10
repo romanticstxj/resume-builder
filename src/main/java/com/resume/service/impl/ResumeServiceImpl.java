@@ -1,8 +1,8 @@
 package com.resume.service.impl;
 
 import com.resume.dto.Page;
-import com.resume.dto.ResumeCreateRequest;
-import com.resume.dto.ResumeUpdateRequest;
+import com.resume.dto.request.ResumeCreateRequest;
+import com.resume.dto.request.ResumeUpdateRequest;
 import com.resume.entity.Resume;
 import com.resume.repository.ResumeRepository;
 import com.resume.service.ResumeService;

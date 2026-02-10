@@ -179,13 +179,17 @@ const sectionConfig = computed(() => {
 })
 
 // 渲染器样式
-const rendererStyle = computed(() => ({
-  '--primary-color': themeConfig.value.primaryColor || '#2c3e50',
-  '--secondary-color': themeConfig.value.secondaryColor || '#3498db',
-  '--text-color': themeConfig.value.textColor || '#333333',
-  '--font-family': themeConfig.value.fontFamily || 'Arial, sans-serif',
-  '--font-size': themeConfig.value.fontSize || '14px'
-}))
+const rendererStyle = computed(() => {
+  const fontSize = themeConfig.value.fontSize
+  const fontSizePx = typeof fontSize === 'number' ? `${fontSize}px` : (fontSize || '14px')
+  return {
+    '--primary-color': themeConfig.value.primaryColor || '#2c3e50',
+    '--secondary-color': themeConfig.value.secondaryColor || '#3498db',
+    '--text-color': themeConfig.value.textColor || '#333333',
+    '--font-family': themeConfig.value.fontFamily || 'Arial, sans-serif',
+    '--font-size': fontSizePx
+  }
+})
 
 const sectionTitleStyle = computed(() => ({
   borderColor: themeConfig.value.primaryColor || '#2c3e50'

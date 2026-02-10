@@ -1,13 +1,12 @@
 package com.resume.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
-public class TemplateCreateRequest {
+public class TemplateUpdateRequest {
+
     @NotBlank(message = "模板名称不能为空")
     private String name;
 
-    @NotBlank(message = "模板分类不能为空")
     private String category;
 
     private String description;
@@ -16,8 +15,6 @@ public class TemplateCreateRequest {
 
     private String content;
 
-    private Boolean isPublic = true;
-
     private String layout;
 
     private String themeConfig;
@@ -25,6 +22,8 @@ public class TemplateCreateRequest {
     private String sectionConfig;
 
     private String sectionOrder;
+
+    private Boolean isPublic;
 
     public String getName() {
         return name;
@@ -66,14 +65,6 @@ public class TemplateCreateRequest {
         this.content = content;
     }
 
-    public Boolean getIsPublic() {
-        return isPublic;
-    }
-
-    public void setIsPublic(Boolean isPublic) {
-        this.isPublic = isPublic;
-    }
-
     public String getLayout() {
         return layout;
     }
@@ -105,6 +96,12 @@ public class TemplateCreateRequest {
     public void setSectionOrder(String sectionOrder) {
         this.sectionOrder = sectionOrder;
     }
+
+    public Boolean getIsPublic() {
+        return isPublic;
+    }
+
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
 }
-
-
