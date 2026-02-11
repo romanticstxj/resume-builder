@@ -338,31 +338,15 @@ const exportOptions = [
   { content: '导出 Word', value: 'word' }
 ]
 
-const handleExportPdf = async () => {
-  if (!resumeId.value) {
-    MessagePlugin.warning('请先保存简历')
-    return
-  }
-
-  try {
-    // 使用前端生成完整HTML，确保所见即所得
-    const html = generateFullHtml()
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(html)
-      printWindow.document.close()
-    } else {
-      MessagePlugin.error('无法打开打印窗口，请允许弹出窗口')
-    }
-  } catch (error) {
-    MessagePlugin.error('导出失败')
-  }
-}
-
 const handleExport = async ({ value }) => {
   if (!resumeId.value) {
     MessagePlugin.warning('请先保存简历')
     return
+  }
+
+  // 确保模板配置已加载
+  if (!currentTemplate.value.sectionConfig && resumeData.value.templateId) {
+    await handleTemplateChange(resumeData.value.templateId)
   }
 
   try {
@@ -399,9 +383,16 @@ const handleExport = async ({ value }) => {
 }
 
 const generateWordHtml = () => {
+  // 使用与PDF相同的HTML结构，确保样式一致
   const themeConfig = currentTemplate.value.themeConfig || {}
-  const fontSize = themeConfig.fontSize || 14
-  const fontSizePt = Math.round(fontSize * 0.75)
+  const sectionConfig = currentTemplate.value.sectionConfig || {}
+  const fontSizePx = typeof themeConfig.fontSize === 'number' ? `${themeConfig.fontSize}px` : (themeConfig.fontSize || '14px')
+  const primaryColor = themeConfig.primaryColor || '#2c3e50'
+  const secondaryColor = themeConfig.secondaryColor || '#3498db'
+  const textColor = themeConfig.textColor || '#333333'
+
+  const hasHeaderBackground = sectionConfig.header?.background === true
+  const isHeaderCenter = sectionConfig.header?.style === 'center'
 
   const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
@@ -411,248 +402,192 @@ const generateWordHtml = () => {
   <meta name=Originator content="Microsoft Word 15">
   <title>${resumeData.value.title}</title>
   <style>
-    body {
-      font-family: ${themeConfig.fontFamily || 'Arial'};
-      font-size: ${fontSizePt}pt;
-      color: ${themeConfig.textColor || '#333333'};
-      line-height: 1.6;
+    @page {
+      size: A4;
       margin: 0;
-      padding: 40pt;
     }
-    h1 {
-      font-size: 24pt;
-      font-weight: bold;
-      color: ${themeConfig.primaryColor || '#2c3e50'};
-      margin-bottom: 8pt;
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
+
+    body {
+      font-family: ${themeConfig.fontFamily || 'Arial, sans-serif'};
+      font-size: ${fontSizePx};
+      color: ${textColor};
+      background: #fff;
+      padding: 0;
+      margin: 0;
+    }
+
+    .resume-page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #fff;
+      padding: ${hasHeaderBackground ? '0 40px 40px 40px' : '40px'};
+      position: relative;
+    }
+
+    .resume-header {
+      margin-bottom: 30px;
+      ${isHeaderCenter ? 'text-align: center;' : ''}
+      ${hasHeaderBackground ? `
+      background: ${primaryColor};
+      color: #fff;
+      padding: 40px;
+      margin: -40px -40px 30px -40px;
+      mso-background-themecolor: ${primaryColor};
+      ` : ''}
+    }
+
+    .name {
+      font-size: 32px;
+      font-weight: 700;
+      color: ${hasHeaderBackground ? '#fff' : primaryColor};
+      margin: 0 0 10px;
+      padding: 0;
+      line-height: 1.2;
+      ${hasHeaderBackground ? 'mso-color-alt: #fff;' : ''}
+    }
+
     .contact-info {
-      font-size: 10pt;
-      color: #666666;
-      margin-bottom: 20pt;
+      font-size: 14px;
+      color: ${hasHeaderBackground ? 'rgba(255, 255, 255, 0.9)' : '#666'};
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      ${hasHeaderBackground ? 'mso-color-alt: rgba(255, 255, 255, 0.9);' : ''}
     }
+
     .resume-section {
-      margin-bottom: 20pt;
+      margin-bottom: 25px;
       page-break-inside: avoid;
     }
+
     .section-title {
-      font-size: 14pt;
-      font-weight: bold;
-      color: ${themeConfig.primaryColor || '#2c3e50'};
-      padding-bottom: 4pt;
-      margin-bottom: 10pt;
-      border-bottom: 1pt solid ${themeConfig.primaryColor || '#2c3e50'};
+      font-size: 18px;
+      font-weight: 600;
+      color: ${primaryColor};
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid ${primaryColor};
     }
+
+    .section-content {
+      line-height: 1.6;
+      color: ${textColor};
+    }
+
+    .experience-item,
+    .project-item,
+    .honor-item,
+    .work-item {
+      margin-bottom: 20px;
+    }
+
     .item-header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 4pt;
+      align-items: baseline;
+      margin-bottom: 8px;
     }
+
     .item-title {
-      font-size: 12pt;
-      font-weight: bold;
+      font-size: 16px;
+      font-weight: 600;
       margin: 0;
     }
+
     .item-period {
-      font-size: 10pt;
-      color: #666666;
+      font-size: 13px;
+      color: #666;
     }
-    .item-description, .item-meta {
-      font-size: 11pt;
-      color: ${themeConfig.textColor || '#333333'};
+
+    .item-description,
+    .item-meta {
+      font-size: 14px;
+      line-height: 1.6;
+      color: ${textColor};
       margin: 0;
-      line-height: 1.5;
     }
+
+    .education-item {
+      margin-bottom: 15px;
+    }
+
     .skills-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 8pt;
+      gap: 12px;
     }
+
     .skill-item {
-      margin-bottom: 4pt;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
     .skill-name {
       font-weight: 500;
     }
+
+    .skill-level {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skill-bar {
+      width: 100px;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .skill-fill {
+      height: 100%;
+      background: ${primaryColor};
+    }
+
+    .skill-text {
+      font-size: 12px;
+      color: #666;
+    }
+
     .item-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 4pt;
-      margin-top: 4pt;
+      gap: 8px;
+      margin-top: 8px;
     }
-    .tag {
+
+    .item-tags .tag {
       display: inline-block;
-      padding: 2pt 6pt;
-      background: ${themeConfig.secondaryColor || '#3498db'};
-      color: #ffffff;
-      border-radius: 2pt;
-      font-size: 9pt;
+      padding: 2px 8px;
+      background: ${secondaryColor};
+      color: #fff;
+      border-radius: 3px;
+      font-size: 12px;
     }
+
     .work-link {
-      color: ${themeConfig.secondaryColor || '#3498db'};
-      text-decoration: underline;
-      font-size: 10pt;
+      display: inline-block;
+      margin-top: 8px;
+      color: ${secondaryColor};
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  ${generateWordContent()}
+  <div class="resume-page">
+    ${generateResumeContent()}
+  </div>
 </body>
 </html>`
-  return html
-}
-
-const generateWordContent = () => {
-  const sectionOrder = currentTemplate.value.sectionOrder || ['header', 'summary', 'experience', 'education', 'projects', 'skills', 'personalSummary', 'honors', 'works']
-  const content = resumeData.value.content
-  let html = ''
-
-  for (const sectionKey of sectionOrder) {
-    switch (sectionKey) {
-      case 'header':
-        html += `
-        <h1>${content.name || '姓名'}</h1>
-        <div class="contact-info">
-          ${content.email || ''}${content.email && content.phone ? ' | ' : ''}${content.phone || ''}
-        </div>`
-        break
-      case 'summary':
-        if (content.summary) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">个人简介</div>
-          <div>${content.summary}</div>
-        </div>`
-        }
-        break
-      case 'experience':
-        if (content.experience?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">工作经历</div>`
-          content.experience.forEach(exp => {
-            html += `
-          <div style="margin-bottom: 12pt;">
-            <div class="item-header">
-              <div class="item-title">${exp.company} - ${exp.position}</div>
-              <div class="item-period">${exp.period}</div>
-            </div>
-            <div class="item-description">${exp.description}</div>
-          </div>`
-          })
-          html += `</div>`
-        }
-        break
-      case 'education':
-        if (content.education?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">教育经历</div>`
-          content.education.forEach(edu => {
-            html += `
-          <div style="margin-bottom: 10pt;">
-            <div class="item-header">
-              <div class="item-title">${edu.school} - ${edu.major}</div>
-              <div class="item-period">${edu.period}</div>
-            </div>
-            <div class="item-meta">${edu.degree}</div>
-          </div>`
-          })
-          html += `</div>`
-        }
-        break
-      case 'projects':
-        if (content.projects?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">项目经历</div>`
-          content.projects.forEach(proj => {
-            html += `
-          <div style="margin-bottom: 12pt;">
-            <div class="item-header">
-              <div class="item-title">${proj.name}</div>
-              <div class="item-period">${proj.period}</div>
-            </div>
-            <div class="item-description">${proj.description}</div>`
-            if (proj.technologies?.length) {
-              html += `
-            <div class="item-tags">${proj.technologies.map(tech => `<span class="tag">${tech}</span>`).join('')}</div>`
-            }
-            html += `
-          </div>`
-          })
-          html += `</div>`
-        }
-        break
-      case 'skills':
-        if (content.skills?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">专业技能</div>
-          <div class="skills-container">`
-          content.skills.forEach(skill => {
-            html += `
-            <div class="skill-item">
-              <div class="skill-name">${skill.name}</div>
-            </div>`
-          })
-          html += `
-          </div>
-        </div>`
-        }
-        break
-      case 'personalSummary':
-        if (content.personalSummary) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">个人总结</div>
-          <div>${content.personalSummary}</div>
-        </div>`
-        }
-        break
-      case 'honors':
-        if (content.honors?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">荣誉奖项</div>`
-          content.honors.forEach(honor => {
-            html += `
-          <div style="margin-bottom: 10pt;">
-            <div class="item-header">
-              <div class="item-title">${honor.name}</div>
-              <div class="item-period">${honor.date}</div>
-            </div>`
-            if (honor.description) {
-              html += `<div class="item-description">${honor.description}</div>`
-            }
-            html += `
-          </div>`
-          })
-          html += `</div>`
-        }
-        break
-      case 'works':
-        if (content.works?.length) {
-          html += `
-        <div class="resume-section">
-          <div class="section-title">个人作品</div>`
-          content.works.forEach(work => {
-            html += `
-          <div style="margin-bottom: 10pt;">
-            <div class="item-title">${work.name}</div>`
-            if (work.description) {
-              html += `<div class="item-description">${work.description}</div>`
-            }
-            if (work.url) {
-              html += `<div class="work-link">${work.url}</div>`
-            }
-            html += `
-          </div>`
-          })
-          html += `</div>`
-        }
-        break
-    }
-  }
   return html
 }
 
@@ -778,6 +713,12 @@ const handlePreview = async () => {
     MessagePlugin.warning('请先保存简历')
     return
   }
+
+  // 确保模板配置已加载
+  if (!currentTemplate.value.sectionConfig && resumeData.value.templateId) {
+    await handleTemplateChange(resumeData.value.templateId)
+  }
+
   try {
     // 使用ResumeRenderer生成完整HTML
     const html = generateFullHtml()
@@ -852,11 +793,16 @@ const generateFullHtml = () => {
       font-weight: 700;
       color: ${hasHeaderBackground ? '#fff' : primaryColor};
       margin: 0 0 10px;
+      padding: 0;
+      line-height: 1.2;
     }
 
     .contact-info {
       font-size: 14px;
       color: ${hasHeaderBackground ? 'rgba(255, 255, 255, 0.9)' : '#666'};
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
     }
 
     .resume-section {
@@ -997,6 +943,11 @@ const generateFullHtml = () => {
         box-shadow: none;
         margin: 0;
         width: 100%;
+      }
+
+      .resume-header {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
   </style>
