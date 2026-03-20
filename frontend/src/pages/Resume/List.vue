@@ -5,10 +5,16 @@
         <h2>我的简历</h2>
         <p>管理您的所有简历</p>
       </div>
-      <t-button theme="primary" @click="handleCreate">
-        <template #icon><t-icon name="add" /></template>
-        新建简历
-      </t-button>
+      <t-space>
+        <t-button theme="default" variant="outline" @click="handleImport">
+          <template #icon><t-icon name="upload" /></template>
+          导入简历
+        </t-button>
+        <t-button theme="primary" @click="handleCreate">
+          <template #icon><t-icon name="add" /></template>
+          新建简历
+        </t-button>
+      </t-space>
     </div>
 
     <div class="resume-grid" v-loading="loading">
@@ -42,9 +48,14 @@
       <div v-if="resumes.length === 0" class="empty-state">
         <t-icon name="file-copy" size="64px" />
         <p>还没有简历</p>
-        <t-button theme="primary" @click="handleCreate">创建第一个简历</t-button>
+        <t-space>
+          <t-button theme="default" variant="outline" @click="handleImport">导入现有简历</t-button>
+          <t-button theme="primary" @click="handleCreate">创建第一个简历</t-button>
+        </t-space>
       </div>
     </div>
+
+    <ResumeImport ref="importDialog" @success="handleImportSuccess" />
 
     <div class="pagination" v-if="total > pageSize">
       <t-pagination
@@ -62,8 +73,19 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getResumeList, deleteResume, copyResume } from '@/api/resume'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import ResumeImport from '@/components/ResumeImport.vue'
 
 const router = useRouter()
+const importDialog = ref(null)
+
+const openImportDialog = () => {
+  importDialog.value.open()
+}
+
+const handleImportSuccess = (resume) => {
+  fetchResumes()
+  router.push(`/resumes/${resume.id}/edit`)
+}
 
 const loading = ref(false)
 const resumes = ref([])
@@ -98,6 +120,10 @@ const fetchResumes = async () => {
 
 const handleCreate = () => {
   router.push('/resumes/create')
+}
+
+const handleImport = () => {
+  openImportDialog()
 }
 
 const handleEdit = (id) => {

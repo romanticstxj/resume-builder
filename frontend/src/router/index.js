@@ -67,6 +67,11 @@ const routes = [
         path: 'ai/generate',
         name: 'AiGenerate',
         component: () => import('@/pages/AI/Generate.vue')
+      },
+      {
+        path: 'parse-tasks',
+        name: 'ParseTasks',
+        component: () => import('@/pages/ParseTask/List.vue')
       }
     ]
   }

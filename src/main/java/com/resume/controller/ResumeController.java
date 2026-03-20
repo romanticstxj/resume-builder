@@ -141,5 +141,13 @@ public class ResumeController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .body(data);
     }
+
+    @PostMapping("/from-parsed")
+    @Operation(summary = "从解析结果创建简历")
+    public ApiResponse<Resume> createFromParsed(@RequestBody com.resume.dto.response.ParseResumeResponse parseResponse) {
+        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Resume resume = resumeService.createFromParsed(parseResponse, userId);
+        return ApiResponse.success(resume);
+    }
 }
 

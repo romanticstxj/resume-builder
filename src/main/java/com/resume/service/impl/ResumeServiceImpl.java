@@ -1,20 +1,26 @@
 package com.resume.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resume.dto.Page;
 import com.resume.dto.request.ResumeCreateRequest;
 import com.resume.dto.request.ResumeUpdateRequest;
+import com.resume.dto.response.ParseResumeResponse;
 import com.resume.entity.Resume;
 import com.resume.repository.ResumeRepository;
 import com.resume.service.ResumeService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ResumeServiceImpl implements ResumeService {
 
     private final ResumeRepository resumeRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -28,6 +34,30 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setIsPrimary(false);
         resume.setCreatedAt(java.time.LocalDateTime.now());
         resume.setUpdatedAt(java.time.LocalDateTime.now());
+
+        return resumeRepository.save(resume);
+    }
+
+    @Override
+    @Transactional
+    public Resume createFromParsed(ParseResumeResponse parseResponse, Long userId) {
+        Resume resume = new Resume();
+        resume.setUserId(userId);
+        resume.setTitle(parseResponse.getTitle());
+        resume.setTemplateId(null); // 用户后续可自行选择模板
+        resume.setStatus("draft");
+        resume.setIsPrimary(false);
+        resume.setCreatedAt(java.time.LocalDateTime.now());
+        resume.setUpdatedAt(java.time.LocalDateTime.now());
+
+        try {
+            // 将解析的内容序列化为JSON字符串存储
+            String contentJson = objectMapper.writeValueAsString(parseResponse.getContent());
+            resume.setContent(contentJson);
+        } catch (JsonProcessingException e) {
+            log.error("序列化简历内容失败", e);
+            throw new RuntimeException("保存简历失败", e);
+        }
 
         return resumeRepository.save(resume);
     }

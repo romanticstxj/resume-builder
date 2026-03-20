@@ -23,6 +23,10 @@
           <template #icon><t-icon name="robot" /></template>
           AI 智能生成
         </t-menu-item>
+        <t-menu-item value="parse-tasks">
+          <template #icon><t-icon name="list" /></template>
+          解析任务
+        </t-menu-item>
       </t-menu>
     </t-aside>
     <t-layout class="main-layout">
@@ -64,7 +68,8 @@ const activeMenu = computed(() => {
   if (path.startsWith('/resumes')) return 'resumes'
   if (path.startsWith('/templates')) return 'templates'
   if (path.startsWith('/template')) return 'template-list'
-  if (path.startsWith('/ai')) return 'ai-generate'
+  if (path.startsWith('/ai/generate')) return 'ai-generate'
+  if (path.startsWith('/parse-tasks')) return 'parse-tasks'
   return ''
 })
 
@@ -73,7 +78,8 @@ const pageTitle = computed(() => {
     resumes: '我的简历',
     templates: '模板市场',
     'template-list': '模板管理',
-    'ai-generate': 'AI 智能生成'
+    'ai-generate': 'AI 智能生成',
+    'parse-tasks': '解析任务'
   }
   return routeMap[activeMenu.value] || ''
 })
@@ -87,7 +93,8 @@ const handleMenuChange = (value) => {
     resumes: '/resumes',
     templates: '/templates',
     'template-list': '/template/list',
-    'ai-generate': '/ai/generate'
+    'ai-generate': '/ai/generate',
+    'parse-tasks': '/parse-tasks'
   }
   if (routeMap[value]) {
     router.push(routeMap[value])
