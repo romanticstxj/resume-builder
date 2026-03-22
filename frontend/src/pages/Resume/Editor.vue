@@ -298,7 +298,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getResumeById, createResume, updateResume } from '@/api/resume'
+import { getResumeById, createResume, updateResume, previewResume, exportResumeWord } from '@/api/resume'
 import { getTemplateList, getTemplateById } from '@/api/template'
 import { MessagePlugin } from 'tdesign-vue-next'
 import ResumeRenderer from '@/components/ResumeRenderer.vue'
@@ -344,15 +344,10 @@ const handleExport = async ({ value }) => {
     return
   }
 
-  // 确保模板配置已加载
-  if (!currentTemplate.value.sectionConfig && resumeData.value.templateId) {
-    await handleTemplateChange(resumeData.value.templateId)
-  }
-
   try {
     if (value === 'pdf') {
-      // PDF导出：使用浏览器打印功能
-      const html = generateFullHtml()
+      // PDF导出：从后端获取HTML，用浏览器打印
+      const html = await previewResume(resumeId.value)
       const printWindow = window.open('', '_blank')
       if (printWindow) {
         printWindow.document.write(html)
@@ -361,15 +356,12 @@ const handleExport = async ({ value }) => {
         MessagePlugin.error('无法打开打印窗口，请允许弹出窗口')
       }
     } else if (value === 'word') {
-      // Word导出：生成MIME类型的Word文档
-      const wordHtml = generateWordHtml()
-      const blob = new Blob(['\ufeff', wordHtml], {
-        type: 'application/msword'
-      })
+      // Word导出：从后端获取blob并触发下载
+      const blob = await exportResumeWord(resumeId.value)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${resumeData.value.title}.doc`
+      a.download = `${resumeData.value.title}.docx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -686,6 +678,10 @@ const handleSave = async () => {
     return
   }
 
+  if (!resumeData.value.content.name) {
+    MessagePlugin.warning('请输入姓名')
+  }
+
   saving.value = true
   try {
     const saveData = {
@@ -714,17 +710,15 @@ const handlePreview = async () => {
     return
   }
 
-  // 确保模板配置已加载
-  if (!currentTemplate.value.sectionConfig && resumeData.value.templateId) {
-    await handleTemplateChange(resumeData.value.templateId)
-  }
-
   try {
-    // 使用ResumeRenderer生成完整HTML
-    const html = generateFullHtml()
+    const html = await previewResume(resumeId.value)
     const previewWindow = window.open('', '_blank')
-    previewWindow.document.write(html)
-    previewWindow.document.close()
+    if (previewWindow) {
+      previewWindow.document.write(html)
+      previewWindow.document.close()
+    } else {
+      MessagePlugin.error('无法打开预览窗口，请允许弹出窗口')
+    }
   } catch (error) {
     MessagePlugin.error('预览失败')
   }

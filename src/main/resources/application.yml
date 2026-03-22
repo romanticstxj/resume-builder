@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
-  profiles:
-    active: test
+#  profiles:
+#    active: test
   application:
     name: resume-builder
 
@@ -15,9 +15,9 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/resume_builder
-    username: postgres
-    password: 1234qwer
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/resume_builder}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234qwer}
 
   jpa:
     hibernate:
@@ -30,13 +30,22 @@ spring:
 
   ai:
     openai:
-      api-key: sk-whxgnenapgsuyayocfolxjwbrvxomducfauplezvzimdgbsn
+      api-key: ${SPRING_AI_OPENAI_API_KEY:your-api-key-here}
       base-url: https://api.siliconflow.cn
       chat:
         options:
           model: Qwen/Qwen2.5-72B-Instruct
           temperature: 0.3
           max-tokens: 8000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 mybatis:
   configuration:

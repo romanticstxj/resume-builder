@@ -74,13 +74,19 @@ const formData = ref({
 })
 
 const rules = {
-  email: [{ required: true, message: '请输入邮箱', type: 'error' }],
-  password: [{ required: true, message: '请输入密码', type: 'error' }]
+  email: [
+    { required: true, message: '请输入邮箱', type: 'error' },
+    { email: true, message: '请输入正确的邮箱格式', type: 'error' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', type: 'error' },
+    { min: 6, message: '密码长度不能少于6位', type: 'error' }
+  ]
 }
 
 const handleLogin = async () => {
   const valid = await formRef.value.validate()
-  if (!valid) return
+  if (valid !== true) return
 
   loading.value = true
   try {

@@ -68,6 +68,9 @@ build/
 .env.local
 .env.*.local
 
+# Local Spring Boot config (contains secrets)
+src/main/resources/application-local.yml
+
 # OS generated files
 .DS_Store
 .DS_Store?

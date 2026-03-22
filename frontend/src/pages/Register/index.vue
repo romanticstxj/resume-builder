@@ -135,7 +135,7 @@ const rules = {
 
 const handleRegister = async () => {
   const valid = await formRef.value.validate()
-  if (!valid) return
+  if (valid !== true) return
 
   loading.value = true
   try {

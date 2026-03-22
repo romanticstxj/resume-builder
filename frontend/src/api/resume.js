@@ -44,3 +44,19 @@ export const copyResume = (id) => {
     method: 'post'
   })
 }
+
+export const previewResume = (id) => {
+  return request({
+    url: `/resumes/${id}/preview`,
+    method: 'get',
+    responseType: 'text'
+  })
+}
+
+export const exportResumeWord = (id) => {
+  return request({
+    url: `/resumes/${id}/export/word`,
+    method: 'get',
+    responseType: 'blob'
+  })
+}

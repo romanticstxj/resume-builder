@@ -6,6 +6,8 @@ import com.resume.dto.request.ResumeCreateRequest;
 import com.resume.dto.request.ResumeUpdateRequest;
 import com.resume.entity.Resume;
 import com.resume.entity.Template;
+import com.resume.entity.User;
+import com.resume.repository.UserRepository;
 import com.resume.service.ResumeRenderService;
 import com.resume.service.ResumeService;
 import com.resume.service.TemplateService;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,11 +30,17 @@ public class ResumeController {
     private final ResumeService resumeService;
     private final ResumeRenderService resumeRenderService;
     private final TemplateService templateService;
+    private final UserRepository userRepository;
+
+    private Long getCurrentUserId() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email).map(User::getId).orElse(1L);
+    }
 
     @PostMapping
     @Operation(summary = "创建简历")
     public ApiResponse<Resume> createResume(@RequestBody ResumeCreateRequest request) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.create(request, userId);
         return ApiResponse.success(resume);
     }
@@ -39,7 +48,7 @@ public class ResumeController {
     @GetMapping("/{id}")
     @Operation(summary = "获取简历详情")
     public ApiResponse<Resume> getResumeById(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.getById(id, userId);
         return ApiResponse.success(resume);
     }
@@ -50,7 +59,7 @@ public class ResumeController {
             @RequestParam(required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Page<Resume> resumes = resumeService.getResumeList(userId, status, page, size);
         return ApiResponse.success(resumes);
     }
@@ -60,7 +69,7 @@ public class ResumeController {
     public ApiResponse<Resume> updateResume(
             @PathVariable Long id,
             @RequestBody ResumeUpdateRequest request) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.update(id, request, userId);
         return ApiResponse.success(resume);
     }
@@ -68,7 +77,7 @@ public class ResumeController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除简历")
     public ApiResponse<Void> deleteResume(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         resumeService.delete(id, userId);
         return ApiResponse.success(null);
     }
@@ -76,7 +85,7 @@ public class ResumeController {
     @PostMapping("/{id}/copy")
     @Operation(summary = "复制简历")
     public ApiResponse<Resume> copyResume(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.copy(id, userId);
         return ApiResponse.success(resume);
     }
@@ -84,7 +93,7 @@ public class ResumeController {
     @GetMapping("/{id}/preview")
     @Operation(summary = "获取简历HTML预览")
     public ResponseEntity<String> getResumePreview(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.getById(id, userId);
 
         Template template = null;
@@ -107,7 +116,7 @@ public class ResumeController {
     public ResponseEntity<byte[]> exportResume(
             @PathVariable Long id,
             @PathVariable String format) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.getById(id, userId);
 
         Template template = null;
@@ -124,7 +133,6 @@ public class ResumeController {
         String filename;
 
         if ("pdf".equalsIgnoreCase(format)) {
-            // 返回HTML，用户可以使用浏览器的打印功能保存为PDF
             data = resumeRenderService.exportToPdf(resume, layout, themeConfig, sectionConfig);
             mediaType = MediaType.TEXT_HTML;
             filename = resume.getTitle() + ".html";
@@ -145,9 +153,8 @@ public class ResumeController {
     @PostMapping("/from-parsed")
     @Operation(summary = "从解析结果创建简历")
     public ApiResponse<Resume> createFromParsed(@RequestBody com.resume.dto.response.ParseResumeResponse parseResponse) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = getCurrentUserId();
         Resume resume = resumeService.createFromParsed(parseResponse, userId);
         return ApiResponse.success(resume);
     }
 }
-

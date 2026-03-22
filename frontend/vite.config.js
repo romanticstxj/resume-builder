@@ -17,5 +17,9 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  // In production, VITE_API_BASE_URL points to the Railway backend URL
+  define: {
+    __API_BASE_URL__: JSON.stringify(process.env.VITE_API_BASE_URL || '')
   }
 })

@@ -3,7 +3,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 
 const service = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : '/api',
   timeout: 10000
 })
 
@@ -22,6 +22,11 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   (response) => {
+    // For blob/text responses, return the raw response data directly
+    const responseType = response.config?.responseType
+    if (responseType === 'blob' || responseType === 'text') {
+      return response.data
+    }
     const { code, message, data } = response.data
     if (code === 200) {
       return data

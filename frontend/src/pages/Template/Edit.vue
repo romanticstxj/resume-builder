@@ -12,7 +12,7 @@
       <!-- 左侧：表单编辑 -->
       <div class="form-section">
         <t-card title="基本信息">
-          <t-form :data="form" :rules="rules" label-width="100px">
+          <t-form ref="formRef" :data="form" :rules="rules" label-width="100px">
             <t-form-item label="模板名称" name="name">
               <t-input v-model="form.name" placeholder="请输入模板名称" />
             </t-form-item>
@@ -199,6 +199,7 @@ import draggable from 'vuedraggable'
 const router = useRouter()
 const route = useRoute()
 const isEdit = computed(() => !!route.params.id)
+const formRef = ref()
 
 // 默认示例数据（用于新建模板或补充编辑时缺失的字段）
 const defaultExampleContent = {
@@ -450,6 +451,9 @@ const loadTemplate = async () => {
 }
 
 const handleSave = async () => {
+  const valid = await formRef.value.validate()
+  if (valid !== true) return
+
   try {
     const data = {
       name: form.value.name,
