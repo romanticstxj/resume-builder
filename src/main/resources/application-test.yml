@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+# Use smaller thread pools or different settings in test profile if desired
+app:
+  ai:
+    rate-per-sec: 10
+

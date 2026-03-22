@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Migration 版本检查",
+  "description": "新增 SQL migration 文件时提醒检查版本号是否正确递增",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "src/main/resources/db/migration/*.sql"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "用户新建了一个 Flyway migration 文件。请检查：1) 文件名是否符合 V{n}__{描述}.sql 格式；2) 版本号是否比现有最大版本号大 1；3) 是否有重复版本号。列出 src/main/resources/db/migration/ 下所有文件并验证。"
+  }
+}

@@ -11,8 +11,11 @@ import com.resume.util.FileParserUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
+import com.resume.event.TaskCreatedEvent;
 import java.io.IOException;
+
 
 /**
  * AI功能控制器
@@ -24,10 +27,12 @@ public class AiController {
 
     private final ParseTaskService taskService;
     private final ResumeParserService parserService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AiController(ParseTaskService taskService, ResumeParserService parserService) {
+    public AiController(ParseTaskService taskService, ResumeParserService parserService, ApplicationEventPublisher eventPublisher) {
         this.taskService = taskService;
         this.parserService = parserService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -35,6 +40,7 @@ public class AiController {
      * 支持的格式：PDF, Word (.doc, .docx), Text
      */
     @PostMapping("/parse-resume")
+    @Transactional
     public ApiResponse<ParseTaskResponse> submitParseTask(@RequestParam("file") MultipartFile file) {
         try {
             // 验证文件
@@ -44,27 +50,22 @@ public class AiController {
 
             Long userId = 1L; // TODO: 从JWT获取用户ID
 
-            // 创建任务
-            ParseTask task = taskService.createTask(file, userId);
+            // 提取文本（同步写入 plaintext 到 DB），按你选择的 C 方案
+            String plaintext = FileParserUtil.extractText(file);
+
+            // 创建任务并保存 plaintext
+            ParseTask task = taskService.createTask(file, userId, plaintext);
             log.info("任务创建成功: {}", task.getId());
 
-            // 提取文件内容
-            String fileContent = FileParserUtil.extractText(file);
-            log.info("提取的文本长度: {}", fileContent.length());
+            // 发布事件（listener 使用 @TransactionalEventListener AFTER_COMMIT）
+            eventPublisher.publishEvent(new TaskCreatedEvent(task.getId()));
 
-            // 异步执行解析
-            taskService.executeParseTask(task.getId(), fileContent, null);
-
-            log.info("异步任务已启动: {}", task.getId());
             return ApiResponse.success(taskService.toResponse(task));
 
         } catch (IllegalArgumentException e) {
             log.warn("文件验证失败: {}", e.getMessage());
             return ApiResponse.error(400, e.getMessage());
 
-        } catch (IOException e) {
-            log.error("文件读取失败", e);
-            return ApiResponse.error(500, "文件读取失败: " + e.getMessage());
 
         } catch (Exception e) {
             log.error("提交任务失败", e);
@@ -94,20 +95,35 @@ public class AiController {
      */
     @GetMapping("/tasks")
     public ApiResponse<Page<ParseTaskResponse>> getTaskList(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
         try {
             Long userId = 1L; // TODO: 从JWT获取用户ID
             Page<ParseTask> tasks = taskService.getTasksByUserId(userId, page, size);
+            // Page constructor: Page(List<T> content, int pageNumber, int pageSize, long totalElements)
             return ApiResponse.success(new Page<>(
                 tasks.getContent().stream().map(taskService::toResponse).toList(),
-                    (int) tasks.getTotalElements(),
                 tasks.getPageNumber(),
-                tasks.getPageSize()
+                tasks.getPageSize(),
+                tasks.getTotalElements()
             ));
         } catch (Exception e) {
             log.error("获取任务列表失败", e);
             return ApiResponse.error(500, "获取任务列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消任务
+     */
+    @PostMapping("/tasks/{id}/cancel")
+    public ApiResponse<Void> cancelTask(@PathVariable Long id) {
+        try {
+            taskService.cancelTask(id);
+            return ApiResponse.success(null);
+        } catch (Exception e) {
+            log.error("取消任务失败", e);
+            return ApiResponse.error(500, "取消任务失败: " + e.getMessage());
         }
     }
 

@@ -42,6 +42,25 @@ public class FileParserUtil {
     }
 
     /**
+     * 从文件字节数组提取文本（根据原始文件名推断扩展名）
+     */
+    public static String extractTextFromBytes(byte[] fileBytes, String originalFilename) throws IOException {
+        if (originalFilename == null) {
+            throw new IllegalArgumentException("文件名不能为空");
+        }
+        String extension = getFileExtension(originalFilename).toLowerCase();
+        try (InputStream inputStream = new java.io.ByteArrayInputStream(fileBytes)) {
+            return switch (extension) {
+                case "pdf" -> extractPdfText(inputStream);
+                case "doc" -> extractDocText(inputStream);
+                case "docx" -> extractDocxText(inputStream);
+                case "txt" -> extractTxtText(inputStream);
+                default -> throw new IllegalArgumentException("不支持的文件格式: " + extension);
+            };
+        }
+    }
+
+    /**
      * 提取PDF文件文本
      */
     private static String extractPdfText(InputStream inputStream) throws IOException {

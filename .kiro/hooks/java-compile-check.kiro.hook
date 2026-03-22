@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Java 编译检查",
+  "description": "编辑 Java 文件后自动检查诊断错误",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.java"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "用户刚刚编辑了一个 Java 文件。请用 getDiagnostics 检查该文件是否有编译错误或警告，如果有错误请简要说明并给出修复建议。"
+  }
+}

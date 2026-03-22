@@ -7,6 +7,7 @@ import com.resume.service.ResumeParserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Profile;
 
 /**
  * 简历解析服务实现
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@Profile("!test")
 public class ResumeParserServiceImpl implements ResumeParserService {
 
     private final ChatModel chatModel;

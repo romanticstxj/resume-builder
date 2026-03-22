@@ -17,6 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 解析任务Service实现
@@ -29,6 +31,7 @@ public class ParseTaskServiceImpl implements ParseTaskService {
     private final ParseTaskRepository taskRepository;
     private final ResumeParserService parserService;
     private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public ParseTask createTask(MultipartFile file, Long userId) {
@@ -41,6 +44,28 @@ public class ParseTaskServiceImpl implements ParseTaskService {
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
         return taskRepository.save(task);
+    }
+
+    @Override
+    public ParseTask createTask(MultipartFile file, Long userId, String plaintext) {
+        ParseTask task = new ParseTask();
+        task.setUserId(userId);
+        task.setFileName(file.getOriginalFilename());
+        task.setFileSize(file.getSize());
+        task.setPlaintext(plaintext);
+        task.setStatus("pending");
+        task.setProgress(0);
+        task.setCreatedAt(LocalDateTime.now());
+        task.setUpdatedAt(LocalDateTime.now());
+        return taskRepository.save(task);
+    }
+
+    @Override
+    @Transactional
+    public void publishTaskCreatedEvent(Long taskId) {
+        // set a small cooldown so RetryScheduler won't immediately pick it again
+        taskRepository.setNextTryAt(taskId, java.time.LocalDateTime.now().plusSeconds(30));
+        eventPublisher.publishEvent(new com.resume.event.TaskCreatedEvent(taskId));
     }
 
     @Override
@@ -81,8 +106,58 @@ public class ParseTaskServiceImpl implements ParseTaskService {
     }
 
     @Override
+    @Async
+    public void executeParseTaskFromFile(Long taskId, org.springframework.web.multipart.MultipartFile file) {
+        try {
+            // 将文件字节读取并委托给基于字节的异步方法
+            byte[] bytes = file.getBytes();
+            executeParseTaskFromBytes(taskId, bytes, file.getOriginalFilename());
+        } catch (Exception e) {
+            log.error("从文件执行解析任务失败: {}", taskId, e);
+            updateTaskStatus(taskId, "failed", 0, e.getMessage());
+        }
+    }
+
+    @Override
+    @Async
+    public void executeParseTaskFromBytes(Long taskId, byte[] fileBytes, String originalFilename) {
+        try {
+            String fileContent = com.resume.util.FileParserUtil.extractTextFromBytes(fileBytes, originalFilename);
+            executeParseTask(taskId, fileContent, null);
+        } catch (Exception e) {
+            log.error("从字节执行解析任务失败: {}", taskId, e);
+            updateTaskStatus(taskId, "failed", 0, e.getMessage());
+        }
+    }
+
+    @Override
     public ParseTask getTaskById(Long id) {
         return taskRepository.findById(id);
+    }
+
+    @Override
+    public boolean claimTaskForProcessing(Long taskId, String workerId) {
+        return taskRepository.claimTaskForProcessing(taskId, workerId);
+    }
+
+    @Override
+    public void markForRetry(Long taskId, int retryCount, String lastError, java.time.LocalDateTime nextTryAt) {
+        taskRepository.markForRetry(taskId, retryCount, lastError, nextTryAt);
+    }
+
+    @Override
+    public java.util.List<ParseTask> findDueTasks(int limit) {
+        return taskRepository.findDueTasks(limit);
+    }
+
+    @Override
+    public void cancelTask(Long taskId) {
+        ParseTask task = getTaskById(taskId);
+        if (task != null && !"success".equals(task.getStatus())) {
+            task.setStatus("canceled");
+            task.setUpdatedAt(java.time.LocalDateTime.now());
+            taskRepository.save(task);
+        }
     }
 
     @Override

@@ -48,8 +48,8 @@ public class ResumeController {
     @Operation(summary = "获取简历列表")
     public ApiResponse<Page<Resume>> getResumeList(
             @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
         Long userId = 1L; // TODO: 从JWT获取用户ID
         Page<Resume> resumes = resumeService.getResumeList(userId, status, page, size);
         return ApiResponse.success(resumes);

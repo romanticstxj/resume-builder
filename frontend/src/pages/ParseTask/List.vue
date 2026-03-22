@@ -2,10 +2,13 @@
   <div class="task-list-container">
     <div class="page-header">
       <h2>解析任务</h2>
-      <t-button theme="primary" @click="openImportDialog">
-        <template #icon><t-icon name="add" /></template>
-        新建任务
-      </t-button>
+      <t-space>
+        <t-button theme="default" variant="outline" @click="loadTasks">刷新</t-button>
+        <t-button theme="primary" @click="openImportDialog">
+          <template #icon><t-icon name="add" /></template>
+          新建任务
+        </t-button>
+      </t-space>
     </div>
 
     <div class="task-table">
@@ -39,7 +42,7 @@
         <template #action="{ row }">
           <t-space>
             <t-button
-              v-if="row.status === 'completed'"
+              v-if="row.status === 'success' || row.status === 'completed'"
               theme="primary"
               variant="text"
               size="small"
@@ -48,7 +51,7 @@
               查看结果
             </t-button>
             <t-button
-              v-if="row.status === 'failed'"
+              v-if="row.status === 'failed' || row.status === 'error'"
               theme="danger"
               variant="text"
               size="small"
@@ -168,11 +171,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { getTaskList } from '@/api/ai'
-import { createResumeFromParsed } from '@/api/ai'
+import { getTaskList, getTaskById, importParsedTaskById, createResumeFromParsed } from '@/api/ai'
 import ResumeImport from '@/components/ResumeImport.vue'
+import { useRoute } from 'vue-router'
 
 const columns = [
   { colKey: 'fileName', title: '文件名', ellipsis: true },
@@ -191,12 +194,16 @@ const pagination = ref({
   total: 0
 })
 
+const route = useRoute()
+// when redirected after upload, this holds the task id to highlight/locate
+const highlightedTaskId = ref(null)
+
 const importDialogRef = ref(null)
 const resultVisible = ref(false)
 const currentResult = ref(null)
 const saving = ref(false)
 
-const pollingTimer = ref(null)
+
 
 const loadTasks = async () => {
   loading.value = true
@@ -205,8 +212,41 @@ const loadTasks = async () => {
       page: pagination.value.current - 1,
       size: pagination.value.pageSize
     })
-    tasks.value = res.data
-    pagination.value.total = res.total
+    // backend returns a Page object: { content, pageNumber, pageSize, totalElements }
+    const content = res.content
+    const pageNumber = typeof res.pageNumber === 'number' ? res.pageNumber : 0
+    const pageSize = typeof res.pageSize === 'number' ? res.pageSize : pagination.value.pageSize
+    const totalElements = typeof res.totalElements === 'number' ? res.totalElements : pagination.value.total
+
+    // compute total pages and clamp current page
+    const totalPages = pageSize > 0 ? Math.ceil(totalElements / pageSize) : 1
+    let currentPage = pageNumber + 1
+    if (currentPage < 1) currentPage = 1
+    if (totalPages > 0 && currentPage > totalPages) currentPage = totalPages
+
+    pagination.value.current = currentPage
+    pagination.value.pageSize = pageSize
+    pagination.value.total = totalElements
+
+    // only overwrite tasks if response provided content array; otherwise keep existing list
+    if (Array.isArray(content)) {
+      tasks.value = content
+    }
+
+    // If we have a highlightedTaskId (from redirect), try to notify/locate it
+    if (highlightedTaskId.value) {
+      const found = tasks.value.find(t => String(t.id) === String(highlightedTaskId.value))
+      if (found) {
+        MessagePlugin.info('已定位到新提交的任务，可在列表中查看进度')
+        // if completed, open result dialog directly
+        if (found.status === 'completed' && found.parseResult) {
+          currentResult.value = found.parseResult
+          resultVisible.value = true
+        }
+      }
+      // clear after first attempt
+      highlightedTaskId.value = null
+    }
   } catch (err) {
     MessagePlugin.error('加载任务列表失败: ' + (err.message || '未知错误'))
   } finally {
@@ -223,14 +263,52 @@ const openImportDialog = () => {
   importDialogRef.value?.open()
 }
 
-const handleImportSuccess = () => {
+const handleImportSuccess = (task) => {
+  // task is the created task object emitted from ResumeImport
+  if (task && task.id) {
+    highlightedTaskId.value = task.id
+  }
   loadTasks()
 }
 
-const handleViewResult = (row) => {
+// react to route query changes (e.g. redirect with ?taskId=123)
+watch(
+  () => route.query.taskId,
+  (val) => {
+    if (val) {
+      highlightedTaskId.value = val
+      loadTasks()
+    }
+  }
+)
+
+const handleViewResult = async (row) => {
+  // If list already contains parseResult, use it directly
   if (row.parseResult) {
-    currentResult.value = row.parseResult
+    // attach originating task id so import can prefer server-side import
+    const pr = row.parseResult
+    try { pr.__taskId = row.id } catch (e) {}
+    currentResult.value = pr
     resultVisible.value = true
+    return
+  }
+
+  // otherwise fetch single task detail to get parseResult
+  loading.value = true
+  try {
+    const task = await getTaskById(row.id)
+    if (task && task.parseResult) {
+      const pr = task.parseResult
+      try { pr.__taskId = task.id } catch (e) {}
+      currentResult.value = pr
+      resultVisible.value = true
+    } else {
+      MessagePlugin.info('该任务暂无解析结果')
+    }
+  } catch (err) {
+    MessagePlugin.error('获取解析结果失败: ' + (err.message || '未知错误'))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -239,23 +317,27 @@ const handleCloseResult = () => {
   currentResult.value = null
 }
 
-const handleConfirmImport = () => {
+const handleConfirmImport = async () => {
   if (!currentResult.value) return
 
   saving.value = true
-  createResumeFromParsed(currentResult.value)
-    .then(res => {
-      MessagePlugin.success('简历导入成功')
-      handleCloseResult()
-      // 跳转到简历列表
-      window.location.href = '#/resumes'
-    })
-    .catch(err => {
-      MessagePlugin.error('简历导入失败: ' + (err.message || '未知错误'))
-    })
-    .finally(() => {
-      saving.value = false
-    })
+  try {
+    // If currentResult came from a task in list, prefer importing by task id to avoid mismatch
+    // Otherwise fallback to posting currentResult directly
+    if (currentResult.value && currentResult.value.__taskId) {
+      await importParsedTaskById(currentResult.value.__taskId)
+    } else {
+      await createResumeFromParsed(currentResult.value)
+    }
+
+    MessagePlugin.success('简历导入成功')
+    handleCloseResult()
+    window.location.href = '#/resumes'
+  } catch (err) {
+    MessagePlugin.error('简历导入失败: ' + (err.message || '未知错误'))
+  } finally {
+    saving.value = false
+  }
 }
 
 const handleRetry = (row) => {
@@ -287,8 +369,11 @@ const getTaskStatusText = (status) => {
   const statusMap = {
     pending: '等待中',
     processing: '解析中',
+    success: '已完成',
     completed: '已完成',
-    failed: '失败'
+    failed: '失败',
+    error: '失败',
+    canceled: '已取消'
   }
   return statusMap[status] || status
 }
@@ -297,8 +382,11 @@ const getTaskStatusTheme = (status) => {
   const themeMap = {
     pending: 'default',
     processing: 'primary',
+    success: 'success',
     completed: 'success',
-    failed: 'danger'
+    failed: 'danger',
+    error: 'danger',
+    canceled: 'warning'
   }
   return themeMap[status] || 'default'
 }
@@ -321,35 +409,16 @@ const formatDate = (dateString) => {
   })
 }
 
-// 轮询更新进行中的任务状态
-const startPolling = () => {
-  pollingTimer.value = setInterval(() => {
-    // 检查是否有进行中的任务
-    const hasProcessing = tasks.value.some(task =>
-      ['pending', 'processing'].includes(task.status)
-    )
-
-    if (hasProcessing) {
-      loadTasks()
-    }
-  }, 5000) // 每5秒查询一次
-}
-
-const stopPolling = () => {
-  if (pollingTimer.value) {
-    clearInterval(pollingTimer.value)
-    pollingTimer.value = null
-  }
-}
+// polling removed: user-triggered refresh via `loadTasks()` is used instead
 
 onMounted(() => {
   loadTasks()
-  startPolling()
+  // read query param to highlight a newly created task
+  if (route.query && route.query.taskId) {
+    highlightedTaskId.value = route.query.taskId
+  }
 })
 
-onUnmounted(() => {
-  stopPolling()
-})
 </script>
 
 <style scoped>

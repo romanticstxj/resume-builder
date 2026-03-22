@@ -114,6 +114,13 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
+        <!-- Guava for RateLimiter -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>32.1.2-jre</version>
+        </dependency>
+
 
         <!-- Spring AI OpenAI -->
         <dependency>

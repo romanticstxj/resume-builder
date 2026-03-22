@@ -279,11 +279,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { submitParseTask, getTaskStatus, createResumeFromParsed } from '@/api/ai'
 
 const emit = defineEmits(['success', 'close'])
+const router = useRouter()
 
 const visible = ref(false)
 const isDragOver = ref(false)
@@ -292,7 +294,7 @@ const parsedData = ref(null)
 const saving = ref(false)
 const uploading = ref(false)
 const fileInput = ref(null)
-const pollingTimer = ref(null)
+// polling removed: component no longer polls task status periodically
 
 // 是否正在处理中（pending 或 processing）
 const isProcessing = computed(() => {
@@ -311,7 +313,6 @@ const handleClose = () => {
 const resetState = () => {
   currentTask.value = null
   parsedData.value = null
-  stopPolling()
 }
 
 const handleDragOver = () => {
@@ -347,11 +348,14 @@ const uploadFile = (file) => {
 
   return submitParseTask(file)
     .then(res => {
-      MessagePlugin.success('任务提交成功')
-      currentTask.value = res
+      MessagePlugin.success('任务提交成功，正在跳转到任务列表以便跟踪进度')
       uploading.value = false
-      // 开始轮询任务状态
-      startPolling(res.id)
+      // 通知父组件（用于刷新列表）
+      emit('success', res)
+      // 关闭当前导入对话框
+      handleClose()
+      // 跳转到解析任务列表，并带上新任务的 id 以便高亮/定位（父页面可以读取）
+      router.push({ path: '/parse-tasks', query: { taskId: res.id } })
     })
     .catch(err => {
       MessagePlugin.error('任务提交失败: ' + (err.message || '未知错误'))
@@ -360,33 +364,7 @@ const uploadFile = (file) => {
     })
 }
 
-const startPolling = (taskId) => {
-  pollingTimer.value = setInterval(() => {
-    getTaskStatus(taskId)
-      .then(task => {
-        currentTask.value = task
-
-        // 如果任务完成或失败，停止轮询
-        if (task.status === 'completed') {
-          MessagePlugin.success('简历解析成功')
-          stopPolling()
-        } else if (task.status === 'failed') {
-          MessagePlugin.error('简历解析失败')
-          stopPolling()
-        }
-      })
-      .catch(err => {
-        console.error('获取任务状态失败:', err)
-      })
-  }, 2000) // 每2秒查询一次
-}
-
-const stopPolling = () => {
-  if (pollingTimer.value) {
-    clearInterval(pollingTimer.value)
-    pollingTimer.value = null
-  }
-}
+// polling helpers removed; status updates should be fetched via parents/list page when needed
 
 const handleViewResult = () => {
   if (currentTask.value && currentTask.value.parseResult) {
@@ -450,9 +428,7 @@ const getTaskStatusTheme = (status) => {
   return themeMap[status] || 'default'
 }
 
-onUnmounted(() => {
-  stopPolling()
-})
+// no cleanup required for polling
 
 defineExpose({ open })
 </script>

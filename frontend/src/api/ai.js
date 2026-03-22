@@ -48,6 +48,17 @@ export function getTaskList(params = {}) {
 }
 
 /**
+ * 获取单个解析任务详情（包含 parseResult 字段）
+ * @param {Number} taskId
+ */
+export function getTaskById(taskId) {
+  return request({
+    url: `/ai/tasks/${taskId}`,
+    method: 'GET'
+  })
+}
+
+/**
  * 同步解析简历文件（保留原有接口）
  * @param {File} file - 简历文件（PDF/Word/Text）
  * @returns {Promise} 解析结果
@@ -78,3 +89,17 @@ export function createResumeFromParsed(parseResponse) {
     data: parseResponse
   })
 }
+
+/**
+ * Convenience helper: import a parsed task by id.
+ * This will GET the task and POST its parseResult to the resume import endpoint.
+ * Falls back to rejecting if parseResult is missing.
+ */
+export async function importParsedTaskById(taskId) {
+  const task = await getTaskById(taskId)
+  if (!task || !task.parseResult) {
+    return Promise.reject(new Error('解析结果不存在'))
+  }
+  return createResumeFromParsed(task.parseResult)
+}
+

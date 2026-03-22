@@ -1,19 +1,19 @@
 package com.resume.dto.response;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 /**
  * 简历解析响应
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ParseResumeResponse {
     private String title;
     private ResumeContent content;
 
-    public ParseResumeResponse(String title, ResumeContent content) {
-        this.title = title;
-        this.content = content;
-    }
 
     @Data
     public static class ResumeContent {

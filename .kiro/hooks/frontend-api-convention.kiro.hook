@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "前端 API 规范检查",
+  "description": "编辑前端 Vue 文件后检查是否有直接使用 axios 而非封装的 api/ 模块",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "frontend/src/pages/**/*.vue",
+      "frontend/src/components/**/*.vue"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "用户编辑了一个 Vue 页面或组件文件。请检查该文件是否直接 import axios 或直接调用 axios，而不是通过 frontend/src/api/ 下的封装模块。如果有，提醒用户应该将 API 调用封装到对应的 api/*.js 文件中。"
+  }
+}
