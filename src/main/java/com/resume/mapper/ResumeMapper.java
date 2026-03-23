@@ -25,11 +25,11 @@ public interface ResumeMapper {
     Resume findById(@Param("id") Long id);
 
     @Insert("INSERT INTO resumes (user_id, title, template_id, content, section_order, status, is_primary, created_at, updated_at) " +
-            "VALUES (#{userId}, #{title}, #{templateId}, #{content}, #{sectionOrder}, #{status}, #{isPrimary}, #{createdAt}, #{updatedAt})")
+            "VALUES (#{userId}, #{title}, #{templateId}, #{content}::json, #{sectionOrder}::json, #{status}, #{isPrimary}, #{createdAt}, #{updatedAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(Resume resume);
 
-    @Update("UPDATE resumes SET title = #{title}, template_id = #{templateId}, content = #{content}, section_order = #{sectionOrder}, " +
+    @Update("UPDATE resumes SET title = #{title}, template_id = #{templateId}, content = #{content}::json, section_order = #{sectionOrder}::json, " +
             "status = #{status}, is_primary = #{isPrimary}, updated_at = #{updatedAt} WHERE id = #{id}")
     void update(Resume resume);
 
