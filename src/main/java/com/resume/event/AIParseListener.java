@@ -69,7 +69,8 @@ public class AIParseListener {
             }
 
             // perform parsing
-            ParseResumeResponse result = parserService.parse(plaintext);
+            String lang = claimedTask.getLanguage() != null ? claimedTask.getLanguage() : "zh";
+            ParseResumeResponse result = parserService.parse(plaintext, lang);
             taskService.saveParseResult(taskId, result);
             taskService.updateTaskStatus(taskId, "success", 100, null);
 

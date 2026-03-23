@@ -17,6 +17,7 @@ public class ParseTask {
     private String errorMessage;
     private String parseResult;
     private String plaintext;
+    private String language;
     private Integer retryCount;
     private Integer maxRetries;
     private String lastError;

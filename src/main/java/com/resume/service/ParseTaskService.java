@@ -23,6 +23,11 @@ public interface ParseTaskService {
     ParseTask createTask(MultipartFile file, Long userId, String plaintext);
 
     /**
+     * 创建新的解析任务并保存 plaintext 和语言
+     */
+    ParseTask createTask(MultipartFile file, Long userId, String plaintext, String language);
+
+    /**
      * 异步执行解析任务
      */
     void executeParseTask(Long taskId, String fileContent, Consumer<ParseResumeResponse> callback);

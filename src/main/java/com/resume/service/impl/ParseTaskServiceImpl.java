@@ -48,11 +48,17 @@ public class ParseTaskServiceImpl implements ParseTaskService {
 
     @Override
     public ParseTask createTask(MultipartFile file, Long userId, String plaintext) {
+        return createTask(file, userId, plaintext, "zh");
+    }
+
+    @Override
+    public ParseTask createTask(MultipartFile file, Long userId, String plaintext, String language) {
         ParseTask task = new ParseTask();
         task.setUserId(userId);
         task.setFileName(file.getOriginalFilename());
         task.setFileSize(file.getSize());
         task.setPlaintext(plaintext);
+        task.setLanguage(language != null ? language : "zh");
         task.setStatus("pending");
         task.setProgress(0);
         task.setCreatedAt(LocalDateTime.now());

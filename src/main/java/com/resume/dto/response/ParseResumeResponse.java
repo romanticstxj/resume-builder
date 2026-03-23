@@ -21,11 +21,11 @@ public class ParseResumeResponse {
         private String email;
         private String phone;
         private String summary;
+        private String language;
         private java.util.List<ExperienceItem> experience;
         private java.util.List<EducationItem> education;
         private java.util.List<ProjectItem> projects;
         private java.util.List<SkillItem> skills;
-        private String personalSummary;
         private java.util.List<HonorItem> honors;
         private java.util.List<WorkItem> works;
     }

@@ -25,9 +25,8 @@ public class ParseTaskRepository {
 
     public ParseTask save(ParseTask task) {
         if (task.getId() == null) {
-            // 插入新任务（使用PostgreSQL的RETURNING子句）
-            String sql = "INSERT INTO parse_tasks (user_id, file_name, file_size, status, progress, error_message, parse_result, plaintext, retry_count, max_retries, last_error, processing_by, processing_at, created_at, updated_at) " +
-                         "VALUES (?, ?, ?, ?, ?, ?, ?::json, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
+            String sql = "INSERT INTO parse_tasks (user_id, file_name, file_size, status, progress, error_message, parse_result, plaintext, language, retry_count, max_retries, last_error, processing_by, processing_at, created_at, updated_at) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?::json, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
             Long id = jdbcTemplate.queryForObject(sql, Long.class,
                 task.getUserId(),
                 task.getFileName(),
@@ -37,6 +36,7 @@ public class ParseTaskRepository {
                 task.getErrorMessage(),
                 task.getParseResult(),
                 task.getPlaintext(),
+                task.getLanguage() != null ? task.getLanguage() : "zh",
                 task.getRetryCount(),
                 task.getMaxRetries(),
                 task.getLastError(),
@@ -158,6 +158,7 @@ public class ParseTaskRepository {
             task.setErrorMessage(rs.getString("error_message"));
             task.setParseResult(rs.getString("parse_result"));
             task.setPlaintext(rs.getString("plaintext"));
+            task.setLanguage(rs.getString("language"));
             task.setRetryCount(rs.getInt("retry_count"));
             task.setMaxRetries(rs.getInt("max_retries"));
             task.setLastError(rs.getString("last_error"));

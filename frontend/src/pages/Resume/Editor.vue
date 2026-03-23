@@ -51,6 +51,13 @@
             </t-select>
           </t-form-item>
 
+          <t-form-item label="简历语言">
+            <t-radio-group v-model="resumeData.content.language">
+              <t-radio value="zh">中文</t-radio>
+              <t-radio value="en">English</t-radio>
+            </t-radio-group>
+          </t-form-item>
+
           <div class="section-title">个人信息</div>
           <t-form-item label="姓名">
             <t-input v-model="resumeData.content.name" placeholder="请输入姓名" />
@@ -201,15 +208,6 @@
             添加专业技能
           </t-button>
 
-          <div class="section-title">个人总结</div>
-          <t-form-item label="总结">
-            <t-textarea
-              v-model="resumeData.content.personalSummary"
-              placeholder="请输入个人总结"
-              :autosize="{ minRows: 4 }"
-            />
-          </t-form-item>
-
           <div class="section-title">荣誉奖项</div>
           <div
             v-for="(honor, index) in resumeData.content.honors"
@@ -327,7 +325,6 @@ const resumeData = ref({
     education: [],
     projects: [],
     skills: [],
-    personalSummary: '',
     honors: [],
     works: []
   }
@@ -962,9 +959,32 @@ const generateFullHtml = () => {
   return html
 }
 
+const sectionLabels = {
+  zh: {
+    summary: '个人简介',
+    experience: '工作经历',
+    education: '教育经历',
+    projects: '项目经历',
+    skills: '专业技能',
+    honors: '荣誉证书',
+    works: '个人作品'
+  },
+  en: {
+    summary: 'Professional Summary',
+    experience: 'Work Experience',
+    education: 'Education',
+    projects: 'Projects',
+    skills: 'Skills',
+    honors: 'Awards & Honors',
+    works: 'Portfolio'
+  }
+}
+
 const generateResumeContent = () => {
-  const sectionOrder = currentTemplate.value.sectionOrder || ['header', 'summary', 'experience', 'education', 'projects', 'skills', 'personalSummary', 'honors', 'works']
+  const sectionOrder = currentTemplate.value.sectionOrder || ['header', 'summary', 'skills', 'experience', 'projects', 'works', 'education', 'honors']
   const content = resumeData.value.content
+  const lang = content.language === 'en' ? 'en' : 'zh'
+  const l = (key) => sectionLabels[lang][key] || sectionLabels.zh[key]
   let html = ''
 
   for (const sectionKey of sectionOrder) {
@@ -982,7 +1002,7 @@ const generateResumeContent = () => {
         if (content.summary) {
           html += `
         <div class="resume-section">
-          <h2 class="section-title">个人简介</h2>
+          <h2 class="section-title">${l('summary')}</h2>
           <p class="section-content">${content.summary}</p>
         </div>`
         }
@@ -991,7 +1011,7 @@ const generateResumeContent = () => {
         if (content.experience?.length) {
           html += `
         <div class="resume-section">
-          <h2 class="section-title">工作经历</h2>`
+          <h2 class="section-title">${l('experience')}</h2>`
           content.experience.forEach(exp => {
             html += `
           <div class="experience-item">
@@ -1009,7 +1029,7 @@ const generateResumeContent = () => {
         if (content.education?.length) {
           html += `
         <div class="resume-section">
-          <h2 class="section-title">教育经历</h2>`
+          <h2 class="section-title">${l('education')}</h2>`
           content.education.forEach(edu => {
             html += `
           <div class="education-item">
@@ -1027,7 +1047,7 @@ const generateResumeContent = () => {
         if (content.projects?.length) {
           html += `
         <div class="resume-section">
-          <h2 class="section-title">项目经历</h2>`
+          <h2 class="section-title">${l('projects')}</h2>`
           content.projects.forEach(proj => {
             html += `
           <div class="project-item">
@@ -1050,7 +1070,7 @@ const generateResumeContent = () => {
         if (content.skills?.length) {
           html += `
         <div class="resume-section">
-          <h2 class="section-title">专业技能</h2>
+          <h2 class="section-title">${l('skills')}</h2>
           <div class="skills-container">`
           content.skills.forEach(skill => {
             html += `
