@@ -13,7 +13,8 @@
     "vue-router": "^4.3.0",
     "pinia": "^2.1.7",
     "tdesign-vue-next": "^1.9.5",
-    "axios": "^1.6.8"
+    "axios": "^1.6.8",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
