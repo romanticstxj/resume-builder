@@ -3,7 +3,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : '/api',
+  baseURL: '/api',
   timeout: 10000
 })
 
