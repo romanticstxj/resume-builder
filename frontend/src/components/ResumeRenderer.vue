@@ -15,13 +15,13 @@
 
         <!-- 个人简介 -->
         <div v-else-if="sectionKey === 'summary' && showSummary && resumeData.content.summary" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">个人简介</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('summary') }}</h2>
           <p class="section-content">{{ resumeData.content.summary }}</p>
         </div>
 
         <!-- 工作经历 -->
         <div v-else-if="sectionKey === 'experience' && showExperience && resumeData.content.experience?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">工作经历</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('experience') }}</h2>
           <div
             v-for="(exp, index) in resumeData.content.experience"
             :key="index"
@@ -38,7 +38,7 @@
 
         <!-- 教育经历 -->
         <div v-else-if="sectionKey === 'education' && showEducation && resumeData.content.education?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">教育经历</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('education') }}</h2>
           <div
             v-for="(edu, index) in resumeData.content.education"
             :key="index"
@@ -55,7 +55,7 @@
 
         <!-- 项目经历 -->
         <div v-else-if="sectionKey === 'projects' && showProjects && resumeData.content.projects?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">项目经历</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('projects') }}</h2>
           <div
             v-for="(project, index) in resumeData.content.projects"
             :key="index"
@@ -74,7 +74,7 @@
 
         <!-- 专业技能 -->
         <div v-else-if="sectionKey === 'skills' && showSkills && resumeData.content.skills?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">专业技能</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('skills') }}</h2>
           <div class="skills-container" :class="skillsStyle">
             <div v-for="skill in resumeData.content.skills" :key="skill.name" class="skill-item">
               <div class="skill-name">{{ skill.name }}</div>
@@ -88,15 +88,9 @@
           </div>
         </div>
 
-        <!-- 个人总结 -->
-        <div v-else-if="sectionKey === 'personalSummary' && showPersonalSummary && resumeData.content.personalSummary" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">个人总结</h2>
-          <p class="section-content">{{ resumeData.content.personalSummary }}</p>
-        </div>
-
-        <!-- 荣誉奖项 -->
+        <!-- 荣誉证书 -->
         <div v-else-if="sectionKey === 'honors' && showHonors && resumeData.content.honors?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">荣誉奖项</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('honors') }}</h2>
           <div
             v-for="(honor, index) in resumeData.content.honors"
             :key="index"
@@ -112,7 +106,7 @@
 
         <!-- 个人作品 -->
         <div v-else-if="sectionKey === 'works' && showWorks && resumeData.content.works?.length" class="resume-section">
-          <h2 class="section-title" :style="sectionTitleStyle">个人作品</h2>
+          <h2 class="section-title" :style="sectionTitleStyle">{{ label('works') }}</h2>
           <div
             v-for="(work, index) in resumeData.content.works"
             :key="index"
@@ -146,7 +140,32 @@ const props = defineProps({
 const layout = computed(() => props.templateConfig.layout || 'classic')
 
 // 区块顺序（默认顺序）
-const defaultSectionOrder = ['header', 'summary', 'experience', 'education', 'projects', 'skills', 'personalSummary', 'honors', 'works']
+const defaultSectionOrder = ['header', 'summary', 'skills', 'experience', 'projects', 'works', 'education', 'honors']
+
+// 语言标题映射
+const sectionLabels = {
+  zh: {
+    summary: '个人简介',
+    experience: '工作经历',
+    education: '教育经历',
+    projects: '项目经历',
+    skills: '专业技能',
+    honors: '荣誉证书',
+    works: '个人作品'
+  },
+  en: {
+    summary: 'Professional Summary',
+    experience: 'Work Experience',
+    education: 'Education',
+    projects: 'Projects',
+    skills: 'Skills',
+    honors: 'Awards & Honors',
+    works: 'Portfolio'
+  }
+}
+
+const lang = computed(() => props.resumeData.content?.language === 'en' ? 'en' : 'zh')
+const label = (key) => sectionLabels[lang.value][key] || sectionLabels.zh[key]
 
 // 使用模板配置的顺序或默认顺序
 const sectionOrder = computed(() => {
@@ -225,8 +244,6 @@ const skillsStyle = computed(() => ({
   'skills-tags': sectionConfig.value.skills?.style === 'tags',
   'skills-list': sectionConfig.value.skills?.style === 'list'
 }))
-
-const showPersonalSummary = computed(() => sectionConfig.value.personalSummary?.show !== false)
 
 const showHonors = computed(() => sectionConfig.value.honors?.show !== false)
 

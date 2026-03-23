@@ -41,23 +41,21 @@ public class AiController {
      */
     @PostMapping("/parse-resume")
     @Transactional
-    public ApiResponse<ParseTaskResponse> submitParseTask(@RequestParam("file") MultipartFile file) {
+    public ApiResponse<ParseTaskResponse> submitParseTask(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "language", defaultValue = "zh") String language) {
         try {
-            // 验证文件
             validateFile(file);
 
-            log.info("提交简历解析任务: {}", file.getOriginalFilename());
+            log.info("提交简历解析任务: {}, 语言: {}", file.getOriginalFilename(), language);
 
             Long userId = 1L; // TODO: 从JWT获取用户ID
 
-            // 提取文本（同步写入 plaintext 到 DB），按你选择的 C 方案
             String plaintext = FileParserUtil.extractText(file);
 
-            // 创建任务并保存 plaintext
-            ParseTask task = taskService.createTask(file, userId, plaintext);
+            ParseTask task = taskService.createTask(file, userId, plaintext, language);
             log.info("任务创建成功: {}", task.getId());
 
-            // 发布事件（listener 使用 @TransactionalEventListener AFTER_COMMIT）
             eventPublisher.publishEvent(new TaskCreatedEvent(task.getId()));
 
             return ApiResponse.success(taskService.toResponse(task));

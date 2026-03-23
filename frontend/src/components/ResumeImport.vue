@@ -9,6 +9,13 @@
     <div class="import-container">
       <!-- 上传区域 -->
       <div v-if="!currentTask && !parsedData" class="upload-area">
+        <div class="language-select">
+          <span class="language-label">简历语言：</span>
+          <t-radio-group v-model="selectedLanguage">
+            <t-radio value="zh">中文</t-radio>
+            <t-radio value="en">English</t-radio>
+          </t-radio-group>
+        </div>
         <div
           class="upload-zone"
           :class="{ 'drag-over': isDragOver }"
@@ -221,15 +228,6 @@
               </t-form-item>
             </div>
 
-            <div class="section-title">个人总结</div>
-            <t-form-item label="总结">
-              <t-textarea
-                v-model="parsedData.content.personalSummary"
-                placeholder="请输入个人总结"
-                :autosize="{ minRows: 3 }"
-              />
-            </t-form-item>
-
             <div class="section-title">荣誉奖项</div>
             <div
               v-for="(honor, index) in parsedData.content.honors"
@@ -294,7 +292,7 @@ const parsedData = ref(null)
 const saving = ref(false)
 const uploading = ref(false)
 const fileInput = ref(null)
-// polling removed: component no longer polls task status periodically
+const selectedLanguage = ref('zh')
 
 // 是否正在处理中（pending 或 processing）
 const isProcessing = computed(() => {
@@ -313,6 +311,7 @@ const handleClose = () => {
 const resetState = () => {
   currentTask.value = null
   parsedData.value = null
+  selectedLanguage.value = 'zh'
 }
 
 const handleDragOver = () => {
@@ -346,7 +345,7 @@ const uploadFile = (file) => {
   uploading.value = true
   MessagePlugin.info('正在提交解析任务...')
 
-  return submitParseTask(file)
+  return submitParseTask(file, selectedLanguage.value)
     .then(res => {
       MessagePlugin.success('任务提交成功，正在跳转到任务列表以便跟踪进度')
       uploading.value = false
@@ -440,6 +439,23 @@ defineExpose({ open })
 
 .upload-area {
   min-height: 400px;
+}
+
+.language-select {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--td-bg-color-container);
+  border-radius: 6px;
+}
+
+.language-label {
+  font-size: 14px;
+  color: var(--td-text-color-primary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .upload-zone {

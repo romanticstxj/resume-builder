@@ -3,11 +3,13 @@ import request from './index'
 /**
  * 提交简历解析任务（异步）
  * @param {File} file - 简历文件（PDF/Word/Text）
+ * @param {String} language - 简历语言 'zh' | 'en'，默认 'zh'
  * @returns {Promise} 任务信息
  */
-export function submitParseTask(file) {
+export function submitParseTask(file, language = 'zh') {
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('language', language)
 
   return request({
     url: '/ai/parse-resume',
