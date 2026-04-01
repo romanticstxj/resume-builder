@@ -19,6 +19,12 @@ public class User {
 
     private String password;
 
+    private String githubId;
+
+    private String avatarUrl;
+
+    private String oauthProvider;
+
     private Integer status = 1;  // 1: active, 0: inactive
 
     private LocalDateTime createdAt;

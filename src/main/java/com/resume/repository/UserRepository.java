@@ -20,6 +20,11 @@ public class UserRepository {
         return Optional.ofNullable(user);
     }
 
+    public Optional<User> findByGithubId(String githubId) {
+        User user = userMapper.findByGithubId(githubId);
+        return Optional.ofNullable(user);
+    }
+
     public boolean existsByEmail(String email) {
         return userMapper.existsByEmail(email);
     }
@@ -27,7 +32,8 @@ public class UserRepository {
     public User save(User user) {
         if (user.getId() == null) {
             userMapper.insert(user);
-            return user;
+        } else {
+            userMapper.update(user);
         }
         return user;
     }

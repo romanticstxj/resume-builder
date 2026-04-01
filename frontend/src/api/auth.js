@@ -15,3 +15,11 @@ export const register = (data) => {
     data
   })
 }
+
+export const getGithubClientId = () => {
+  return request({ url: '/auth/github/client-id', method: 'get' })
+}
+
+export const githubCallback = (code) => {
+  return request({ url: `/auth/github/callback?code=${code}`, method: 'post' })
+}

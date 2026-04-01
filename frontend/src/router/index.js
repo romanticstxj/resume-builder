@@ -10,6 +10,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/auth/github/callback',
+    name: 'GitHubCallback',
+    component: () => import('@/pages/Login/GitHubCallback.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/register',
     name: 'Register',
     component: () => import('@/pages/Register/index.vue'),

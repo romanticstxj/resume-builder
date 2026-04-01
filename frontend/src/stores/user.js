@@ -49,11 +49,24 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('userInfo')
   }
 
+  // OAuth 登录后直接设置（不走 loginApi）
+  const setToken = (t) => {
+    token.value = t
+    localStorage.setItem('token', t)
+  }
+
+  const setUserInfo = (info) => {
+    userInfo.value = info
+    localStorage.setItem('userInfo', JSON.stringify(info))
+  }
+
   return {
     token,
     userInfo,
     login,
     register,
-    logout
+    logout,
+    setToken,
+    setUserInfo
   }
 })
