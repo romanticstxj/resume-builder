@@ -6,14 +6,32 @@
         <p>管理您的所有简历</p>
       </div>
       <t-space>
-        <t-button theme="default" variant="outline" @click="handleImport">
-          <template #icon><t-icon name="upload" /></template>
-          导入简历
-        </t-button>
-        <t-button theme="primary" @click="handleCreate">
-          <template #icon><t-icon name="add" /></template>
-          新建简历
-        </t-button>
+        <template v-if="selectMode">
+          <span class="select-hint">已选 {{ selectedIds.size }} 项</span>
+          <t-button theme="danger" variant="outline" :disabled="selectedIds.size === 0" @click="handleBatchDelete">
+            <template #icon><t-icon name="delete" /></template>
+            删除所选
+          </t-button>
+          <t-button theme="default" @click="exitSelectMode">取消</t-button>
+        </template>
+        <template v-else>
+          <t-button theme="default" variant="outline" @click="enterSelectMode">
+            <template #icon><t-icon name="check-circle" /></template>
+            批量删除
+          </t-button>
+          <t-button theme="default" variant="outline" @click="handleImport">
+            <template #icon><t-icon name="upload" /></template>
+            导入简历
+          </t-button>
+          <t-button theme="default" variant="outline" @click="handleImportJson">
+            <template #icon><t-icon name="file-import" /></template>
+            从 JSON 导入
+          </t-button>
+          <t-button theme="primary" @click="handleCreate">
+            <template #icon><t-icon name="add" /></template>
+            新建简历
+          </t-button>
+        </template>
       </t-space>
     </div>
 
@@ -22,14 +40,18 @@
         v-for="resume in resumes"
         :key="resume.id"
         class="resume-card"
-        @click="handleEdit(resume.id)"
+        :class="{ selected: selectedIds.has(resume.id), 'select-mode': selectMode }"
+        @click="selectMode ? toggleSelect(resume.id) : handleEdit(resume.id)"
       >
+        <div v-if="selectMode" class="select-checkbox">
+          <t-checkbox :checked="selectedIds.has(resume.id)" @click.stop="toggleSelect(resume.id)" />
+        </div>
         <div class="card-header">
           <div class="status-tag" :class="resume.status">
             {{ resume.status === 'draft' ? '草稿' : '完成' }}
           </div>
-          <t-dropdown :options="getCardOptions(resume)" @click="(e) => handleCardAction(e, resume.id)">
-            <t-icon name="more" class="more-icon" />
+          <t-dropdown v-if="!selectMode" :options="getCardOptions(resume)" @click="(item) => handleCardAction(item, resume.id)">
+            <t-icon name="more" class="more-icon" @click.stop />
           </t-dropdown>
         </div>
         <div class="card-body">
@@ -57,6 +79,15 @@
 
     <ResumeImport ref="importDialog" @success="handleImportSuccess" />
 
+    <!-- 隐藏的 JSON 文件选择器 -->
+    <input
+      ref="jsonFileInput"
+      type="file"
+      accept=".json"
+      style="display: none"
+      @change="onJsonFileSelected"
+    />
+
     <div class="pagination" v-if="total > pageSize">
       <t-pagination
         v-model="currentPage"
@@ -71,12 +102,53 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getResumeList, deleteResume, copyResume } from '@/api/resume'
+import { getResumeList, deleteResume, copyResume, createResume } from '@/api/resume'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import ResumeImport from '@/components/ResumeImport.vue'
 
 const router = useRouter()
 const importDialog = ref(null)
+const jsonFileInput = ref(null)
+
+// 批量选择
+const selectMode = ref(false)
+const selectedIds = ref(new Set())
+
+const enterSelectMode = () => {
+  selectMode.value = true
+  selectedIds.value = new Set()
+}
+
+const exitSelectMode = () => {
+  selectMode.value = false
+  selectedIds.value = new Set()
+}
+
+const toggleSelect = (id) => {
+  const s = new Set(selectedIds.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  selectedIds.value = s
+}
+
+const handleBatchDelete = () => {
+  if (selectedIds.value.size === 0) return
+  const dialog = DialogPlugin.confirm({
+    header: '确认批量删除',
+    body: `确定要删除选中的 ${selectedIds.value.size} 个简历吗？此操作不可恢复。`,
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await Promise.all([...selectedIds.value].map(id => deleteResume(id)))
+        MessagePlugin.success(`已删除 ${selectedIds.value.size} 个简历`)
+        dialog.hide()
+        exitSelectMode()
+        await fetchResumes()
+      } catch (error) {
+        MessagePlugin.error('部分删除失败，请重试')
+      }
+    }
+  })
+}
 
 const openImportDialog = () => {
   importDialog.value.open()
@@ -124,6 +196,36 @@ const handleCreate = () => {
 
 const handleImport = () => {
   openImportDialog()
+}
+
+const handleImportJson = () => {
+  jsonFileInput.value.value = ''   // 允许重复选同一文件
+  jsonFileInput.value.click()
+}
+
+const onJsonFileSelected = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async (evt) => {
+    try {
+      const parsed = JSON.parse(evt.target.result)
+      if (!parsed._version || !parsed.content) {
+        MessagePlugin.error('文件格式不正确，请选择有效的简历 JSON 文件')
+        return
+      }
+      const res = await createResume({
+        title: parsed.title || '导入的简历',
+        content: JSON.stringify(parsed.content)
+      })
+      MessagePlugin.success('导入成功')
+      router.push(`/resumes/${res.id}/edit`)
+    } catch (err) {
+      console.error('JSON 导入失败:', err)
+      MessagePlugin.error('导入失败，请检查文件格式')
+    }
+  }
+  reader.readAsText(file)
 }
 
 const handleEdit = (id) => {
@@ -227,12 +329,30 @@ onMounted(() => {
   padding: 20px;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .resume-card:hover {
   border-color: var(--td-brand-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.resume-card.selected {
+  border-color: var(--td-brand-color);
+  background: #f0f7ff;
+}
+
+.select-checkbox {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.select-hint {
+  font-size: 14px;
+  color: #666;
+  line-height: 32px;
 }
 
 .card-header {

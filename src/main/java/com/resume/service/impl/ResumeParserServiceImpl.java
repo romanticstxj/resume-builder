@@ -36,6 +36,7 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         log.info("开始解析简历，内容长度: {}, 语言: {}", fileContent.length(), language);
 
         String userPrompt = buildParsePrompt(fileContent, language);
+        log.info("解析提示词: {}", userPrompt);
 
         try {
             String response = chatModel.call(userPrompt);
@@ -64,64 +65,64 @@ public class ResumeParserServiceImpl implements ResumeParserService {
     private String buildParsePrompt(String fileContent, String language) {
         boolean isEn = "en".equals(language);
         String langInstruction = isEn
-            ? "The resume is in English. Extract all fields in English as they appear."
-            : "简历为中文，请用中文提取所有字段内容。";
+            ? "The resume is in English."
+            : "简历为中文。";
 
         return String.format("""
-            请解析以下简历内容，返回JSON格式。%s
+            你是一个简历解析工具。请将以下简历原文内容原封不动地搬运到 JSON 结构中，禁止修改、润色、翻译或补充任何内容，所有字段值必须与原文完全一致，但因为适用oci技术导致skills，experience，projects，works的内容里有些换行没了，可以按照你的理解帮我补全换行。%s
+
+            只返回如下 JSON，不要输出任何解释：
 
             {
-              "name": "姓名/Full Name",
-              "email": "邮箱/Email",
-              "phone": "电话/Phone",
-              "summary": "个人简介/Professional Summary",
+              "name": "原文姓名",
+              "email": "原文邮箱",
+              "phone": "原文电话",
+              "summary": "原文个人简介，原文没有则为空字符串",
+              "skills": [
+                { "name": "原文技能名称" }
+              ],
               "experience": [
                 {
-                  "company": "公司名称/Company",
-                  "position": "职位/Position",
-                  "period": "时间段/Period（如：2020-2023）",
-                  "description": "工作描述/Description"
-                }
-              ],
-              "education": [
-                {
-                  "school": "学校名称/School",
-                  "major": "专业/Major",
-                  "degree": "学位/Degree（如：本科/Bachelor）",
-                  "period": "时间段/Period（如：2016-2020）"
+                  "company": "原文公司名称",
+                  "position": "原文职位",
+                  "period": "原文时间段",
+                  "description": "原文工作描述"
                 }
               ],
               "projects": [
                 {
-                  "name": "项目名称/Project Name",
-                  "period": "项目时间/Period",
-                  "description": "项目描述/Description",
-                  "technologies": ["技术1/Tech1", "技术2/Tech2"]
-                }
-              ],
-              "skills": [
-                {
-                  "name": "技能名称/Skill Name",
-                  "level": 熟练度/Proficiency（0-100的整数/integer）
-                }
-              ],
-              "honors": [
-                {
-                  "name": "奖项名称/Award Name",
-                  "date": "获奖时间/Date",
-                  "description": "奖项描述/Description"
+                  "name": "原文项目名称",
+                  "company": "原文项目所属公司或组织，原文没有则为空字符串",
+                  "period": "原文项目时间",
+                  "description": "原文项目描述",
+                  "technologies": ["原文技术1", "原文技术2"]
                 }
               ],
               "works": [
                 {
-                  "name": "作品名称/Work Name",
-                  "description": "作品描述/Description",
-                  "url": "作品链接/URL"
+                  "name": "原文作品名称",
+                  "description": "原文作品描述",
+                  "url": "原文链接"
+                }
+              ],
+              "education": [
+                {
+                  "school": "原文学校名称",
+                  "major": "原文专业",
+                  "degree": "原文学位",
+                  "period": "原文时间段"
+                }
+              ],
+              "honors": [
+                {
+                  "name": "原文奖项名称",
+                  "date": "原文获奖时间",
+                  "description": "原文奖项描述"
                 }
               ]
             }
 
-            简历内容/Resume Content：
+            简历原文：
             %s
             """, langInstruction, fileContent);
     }

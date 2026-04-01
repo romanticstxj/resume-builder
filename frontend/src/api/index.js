@@ -37,11 +37,14 @@ service.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
+      console.warn('[Auth] 401 received, token expired or invalid — forcing logout')
       const userStore = useUserStore()
       userStore.logout()
+      MessagePlugin.warning('登录已过期，请重新登录')
       window.location.href = '/login'
+    } else {
+      MessagePlugin.error(error.response?.data?.message || '请求失败')
     }
-    MessagePlugin.error(error.response?.data?.message || '请求失败')
     return Promise.reject(error)
   }
 )

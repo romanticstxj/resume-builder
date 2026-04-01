@@ -9,11 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
+    "@tiptap/extension-text-align": "^3.21.0",
+    "@tiptap/pm": "^3.21.0",
+    "@tiptap/starter-kit": "^3.21.0",
+    "@tiptap/vue-3": "^3.21.0",
+    "axios": "^1.6.8",
     "pinia": "^2.1.7",
     "tdesign-vue-next": "^1.9.5",
-    "axios": "^1.6.8",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {

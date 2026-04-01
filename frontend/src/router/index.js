@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import { useUserStore, isTokenExpired } from '@/stores/user'
+import { MessagePlugin } from 'tdesign-vue-next'
 
 const routes = [
   {
@@ -84,14 +85,28 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  
-  if (to.meta.requiresAuth && !userStore.token) {
-    next('/login')
-  } else if ((to.path === '/login' || to.path === '/register') && userStore.token) {
-    next('/')
-  } else {
-    next()
+
+  if (to.meta.requiresAuth) {
+    if (!userStore.token) {
+      next('/login')
+      return
+    }
+    // token 存在但已过期：强制登出并提示
+    if (isTokenExpired(userStore.token)) {
+      console.warn('[Auth] Token expired on navigation, forcing logout')
+      userStore.logout()
+      MessagePlugin.warning('登录已过期，请重新登录')
+      next('/login')
+      return
+    }
   }
+
+  if ((to.path === '/login' || to.path === '/register') && userStore.token && !isTokenExpired(userStore.token)) {
+    next('/')
+    return
+  }
+
+  next()
 })
 
 export default router

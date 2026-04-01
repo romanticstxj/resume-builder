@@ -5,18 +5,30 @@
       <template v-for="sectionKey in sectionOrder" :key="sectionKey">
         <!-- 头部区域 -->
         <div v-if="sectionKey === 'header' && showHeader" class="resume-header" :class="headerStyle">
-          <h1 class="name">{{ resumeData.content.name || '姓名' }}</h1>
-          <div v-if="resumeData.content.email || resumeData.content.phone" class="contact-info">
-            <span v-if="resumeData.content.email">{{ resumeData.content.email }}</span>
-            <span v-if="resumeData.content.email && resumeData.content.phone"> | </span>
-            <span v-if="resumeData.content.phone">{{ resumeData.content.phone }}</span>
+          <div class="header-main">
+            <div class="header-text">
+              <h1 class="name">{{ resumeData.content.name || '姓名' }}</h1>
+              <div v-if="resumeData.content.email || resumeData.content.phone || resumeData.content.city || resumeData.content.jobTarget" class="contact-info">
+                <div v-if="resumeData.content.email || resumeData.content.phone">
+                  <span v-if="resumeData.content.email">{{ resumeData.content.email }}</span>
+                  <span v-if="resumeData.content.email && resumeData.content.phone"> | </span>
+                  <span v-if="resumeData.content.phone">{{ resumeData.content.phone }}</span>
+                </div>
+                <div v-if="resumeData.content.city || resumeData.content.jobTarget">
+                  <span v-if="resumeData.content.city">{{ resumeData.content.city }}</span>
+                  <span v-if="resumeData.content.city && resumeData.content.jobTarget"> | </span>
+                  <span v-if="resumeData.content.jobTarget">{{ resumeData.content.jobTarget }}</span>
+                </div>
+              </div>
+            </div>
+            <img v-if="resumeData.content.photo" :src="resumeData.content.photo" class="header-photo" />
           </div>
         </div>
 
         <!-- 个人简介 -->
         <div v-else-if="sectionKey === 'summary' && showSummary && resumeData.content.summary" class="resume-section">
           <h2 class="section-title" :style="sectionTitleStyle">{{ label('summary') }}</h2>
-          <p class="section-content">{{ resumeData.content.summary }}</p>
+          <p class="section-content" v-html="resumeData.content.summary"></p>
         </div>
 
         <!-- 工作经历 -->
@@ -29,10 +41,11 @@
             :class="experienceStyle"
           >
             <div class="item-header">
-              <h3 class="item-title">{{ exp.company }} - {{ exp.position }}</h3>
+              <h3 class="item-title">{{ exp.company }}</h3>
               <span class="item-period">{{ exp.period }}</span>
             </div>
-            <p class="item-description">{{ exp.description }}</p>
+            <div v-if="exp.position" class="item-role-line">{{ exp.position }}</div>
+            <p class="item-description" v-html="exp.description"></p>
           </div>
         </div>
 
@@ -65,7 +78,10 @@
               <h3 class="item-title">{{ project.name }}</h3>
               <span class="item-period">{{ project.period }}</span>
             </div>
-            <p class="item-description">{{ project.description }}</p>
+            <div v-if="project.company || project.title" class="item-role-line">
+              <span v-if="project.company">{{ project.company }}</span><span v-if="project.company && project.title"> · </span><span v-if="project.title">{{ project.title }}</span>
+            </div>
+            <p class="item-description" v-html="project.description"></p>
             <div v-if="project.technologies?.length" class="item-tags">
               <span v-for="tech in project.technologies" :key="tech" class="tag">{{ tech }}</span>
             </div>
@@ -73,19 +89,9 @@
         </div>
 
         <!-- 专业技能 -->
-        <div v-else-if="sectionKey === 'skills' && showSkills && resumeData.content.skills?.length" class="resume-section">
+        <div v-else-if="sectionKey === 'skills' && showSkills && (resumeData.content.skillsText || resumeData.content.skills?.length)" class="resume-section">
           <h2 class="section-title" :style="sectionTitleStyle">{{ label('skills') }}</h2>
-          <div class="skills-container" :class="skillsStyle">
-            <div v-for="skill in resumeData.content.skills" :key="skill.name" class="skill-item">
-              <div class="skill-name">{{ skill.name }}</div>
-              <div v-if="skill.level" class="skill-level">
-                <div class="skill-bar">
-                  <div class="skill-fill" :style="{ width: skill.level + '%' }"></div>
-                </div>
-                <span class="skill-text">{{ skill.level }}%</span>
-              </div>
-            </div>
-          </div>
+          <div class="item-description" v-html="resumeData.content.skillsText || resumeData.content.skills?.map(s=>s.name).join(', ')"></div>
         </div>
 
         <!-- 荣誉证书 -->
@@ -100,7 +106,7 @@
               <h3 class="item-title">{{ honor.name }}</h3>
               <span class="item-period">{{ honor.date }}</span>
             </div>
-            <p v-if="honor.description" class="item-description">{{ honor.description }}</p>
+            <p v-if="honor.description" class="item-description" v-html="honor.description"></p>
           </div>
         </div>
 
@@ -113,7 +119,8 @@
             class="work-item"
           >
             <h3 class="item-title">{{ work.name }}</h3>
-            <p v-if="work.description" class="item-description">{{ work.description }}</p>
+            <div v-if="work.role" class="item-role-line">{{ work.role }}</div>
+            <p v-if="work.description" class="item-description" v-html="work.description"></p>
             <a v-if="work.url" :href="work.url" class="work-link" target="_blank">{{ work.url }}</a>
           </div>
         </div>
@@ -139,41 +146,18 @@ const props = defineProps({
 // 解析配置
 const layout = computed(() => props.templateConfig.layout || 'classic')
 
-// 区块顺序（默认顺序）
-const defaultSectionOrder = ['header', 'summary', 'skills', 'experience', 'projects', 'works', 'education', 'honors']
-
-// 语言标题映射
-const sectionLabels = {
-  zh: {
-    summary: '个人简介',
-    experience: '工作经历',
-    education: '教育经历',
-    projects: '项目经历',
-    skills: '专业技能',
-    honors: '荣誉证书',
-    works: '个人作品'
-  },
-  en: {
-    summary: 'Professional Summary',
-    experience: 'Work Experience',
-    education: 'Education',
-    projects: 'Projects',
-    skills: 'Skills',
-    honors: 'Awards & Honors',
-    works: 'Portfolio'
-  }
-}
+import { DEFAULT_SECTION_ORDER, getSectionLabel } from '@/config/sectionRegistry'
 
 const lang = computed(() => props.resumeData.content?.language === 'en' ? 'en' : 'zh')
-const label = (key) => sectionLabels[lang.value][key] || sectionLabels.zh[key]
+const label = (key) => getSectionLabel(key, lang.value)
 
-// 使用模板配置的顺序或默认顺序
+// 使用模板配置的顺序或注册表默认顺序
 const sectionOrder = computed(() => {
   try {
     const order = props.templateConfig.sectionOrder
-    return Array.isArray(order) && order.length > 0 ? order : defaultSectionOrder
+    return Array.isArray(order) && order.length > 0 ? order : DEFAULT_SECTION_ORDER
   } catch {
-    return defaultSectionOrder
+    return DEFAULT_SECTION_ORDER
   }
 })
 
@@ -260,12 +244,31 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
 }
 
 .resume-page {
-  max-width: 210mm;
+  max-width: 960px;
   margin: 0 auto;
   background: #fff;
-  padding: 40px;
+  padding: 48px 56px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   min-height: 297mm;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景水印 */
+.resume-page::before {
+  content: 'RESUME';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  font-size: 120px;
+  font-weight: 900;
+  color: var(--primary-color);
+  opacity: 0.03;
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 12px;
+  z-index: 0;
 }
 
 /* 布局样式 */
@@ -279,6 +282,24 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
 
 .resume-header {
   margin-bottom: 30px;
+}
+
+.header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-text { flex: 1; }
+
+.header-photo {
+  width: 80px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-left: 24px;
+  flex-shrink: 0;
+  border: 1px solid #e0e0e0;
 }
 
 .header-center {
@@ -328,6 +349,7 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
 .section-content {
   line-height: 1.6;
   color: var(--text-color);
+  white-space: pre-wrap;
 }
 
 /* 工作经历 */
@@ -348,6 +370,19 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
   margin: 0;
 }
 
+.item-role {
+  font-size: 13px;
+  font-weight: normal;
+  color: #555;
+}
+
+.item-role-line {
+  font-size: 13px;
+  font-style: italic;
+  color: #666;
+  margin: 2px 0 4px;
+}
+
 .item-period {
   font-size: 13px;
   color: #666;
@@ -357,8 +392,35 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
 .item-meta {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--text-color);
+  color: var(--text-color) !important;
   margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Rich text content styles */
+.item-description :deep(ul),
+.section-content :deep(ul) {
+  padding-left: 18px;
+  list-style-type: disc;
+  margin: 4px 0;
+}
+
+.item-description :deep(ol),
+.section-content :deep(ol) {
+  padding-left: 18px;
+  list-style-type: decimal;
+  margin: 4px 0;
+}
+
+.item-description :deep(li),
+.section-content :deep(li) { margin: 2px 0; }
+
+.item-description :deep(p),
+.section-content :deep(p) { margin: 0 0 4px; }
+
+/* Override any inline color styles from v-html content (e.g. from rich text editor or AI parse) */
+.item-description :deep(*) {
+  color: inherit !important;
 }
 
 /* Timeline 样式 */
@@ -422,10 +484,20 @@ const showWorks = computed(() => sectionConfig.value.works?.show !== false)
 }
 
 /* 专业技能 */
-.skills-container {
+.skills-tags-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+}
+
+.skill-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--primary-color) 10%, white);
+  color: var(--primary-color);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 30%, white);
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 .skills-list {

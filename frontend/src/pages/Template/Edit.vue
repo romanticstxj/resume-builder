@@ -152,8 +152,6 @@
               <t-input v-model="skill.name" placeholder="技能名称" style="margin-bottom: 8px" />
               <t-slider v-model.number="skill.level" :min="0" :max="100" label="熟练度" />
             </div>
-            <t-divider>个人总结示例</t-divider>
-            <t-textarea v-model="form.content.personalSummary" :autosize="{ minRows: 3 }" placeholder="个人总结" />
             <t-divider>荣誉奖项示例</t-divider>
             <div v-for="(honor, index) in form.content.honors" :key="index" style="margin-bottom: 12px">
               <t-input v-model="honor.name" placeholder="奖项名称" style="margin-bottom: 8px" />
@@ -251,7 +249,6 @@ const defaultExampleContent = {
     { name: 'MySQL', level: 80 },
     { name: 'Redis', level: 75 }
   ],
-  personalSummary: '热爱技术，持续学习。具有良好的沟通能力和团队协作精神，能够快速适应新环境和新挑战。工作中注重代码质量和系统性能，善于从用户角度思考问题。',
   honors: [
     {
       name: '优秀员工',
@@ -297,15 +294,14 @@ const previewResumeData = computed(() => {
 
 // 区块顺序配置
 const sectionOrder = ref([
-  { id: 'header', key: 'header', label: '头部信息' },
-  { id: 'summary', key: 'summary', label: '个人简介' },
+  { id: 'header',     key: 'header',     label: '头部信息' },
+  { id: 'summary',    key: 'summary',    label: '个人简介' },
+  { id: 'skills',     key: 'skills',     label: '专业技能' },
   { id: 'experience', key: 'experience', label: '工作经历' },
-  { id: 'education', key: 'education', label: '教育经历' },
-  { id: 'projects', key: 'projects', label: '项目经历' },
-  { id: 'skills', key: 'skills', label: '专业技能' },
-  { id: 'personalSummary', key: 'personalSummary', label: '个人总结' },
-  { id: 'honors', key: 'honors', label: '荣誉奖项' },
-  { id: 'works', key: 'works', label: '个人作品' }
+  { id: 'projects',   key: 'projects',   label: '项目经历' },
+  { id: 'works',      key: 'works',      label: '个人作品' },
+  { id: 'education',  key: 'education',  label: '教育经历' },
+  { id: 'honors',     key: 'honors',     label: '荣誉奖项' }
 ])
 
 const form = ref({
@@ -347,10 +343,6 @@ const form = ref({
     skills: {
       show: true,
       style: 'tags'
-    },
-    personalSummary: {
-      show: true,
-      style: 'plain'
     },
     honors: {
       show: true,

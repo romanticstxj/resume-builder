@@ -104,8 +104,9 @@ public class ResumeController {
         String layout = template != null ? template.getLayout() : "classic";
         String themeConfig = template != null ? template.getThemeConfig() : null;
         String sectionConfig = template != null ? template.getSectionConfig() : null;
+        String sectionOrder = template != null ? template.getSectionOrder() : null;
 
-        String html = resumeRenderService.renderToHtml(resume, layout, themeConfig, sectionConfig);
+        String html = resumeRenderService.renderToHtml(resume, layout, themeConfig, sectionConfig, sectionOrder);
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
                 .body(html);
@@ -127,19 +128,20 @@ public class ResumeController {
         String layout = template != null ? template.getLayout() : "classic";
         String themeConfig = template != null ? template.getThemeConfig() : null;
         String sectionConfig = template != null ? template.getSectionConfig() : null;
+        String sectionOrder = template != null ? template.getSectionOrder() : null;
 
         byte[] data;
         MediaType mediaType;
         String filename;
 
         if ("pdf".equalsIgnoreCase(format)) {
-            data = resumeRenderService.exportToPdf(resume, layout, themeConfig, sectionConfig);
+            data = resumeRenderService.exportToPdf(resume, layout, themeConfig, sectionConfig, sectionOrder);
             mediaType = MediaType.TEXT_HTML;
             filename = resume.getTitle() + ".html";
         } else if ("word".equalsIgnoreCase(format)) {
-            data = resumeRenderService.exportToWord(resume, layout, themeConfig, sectionConfig);
+            data = resumeRenderService.exportToWord(resume, layout, themeConfig, sectionConfig, sectionOrder);
             mediaType = MediaType.APPLICATION_OCTET_STREAM;
-            filename = resume.getTitle() + ".docx";
+            filename = resume.getTitle() + ".doc";
         } else {
             throw new IllegalArgumentException("不支持的导出格式: " + format);
         }

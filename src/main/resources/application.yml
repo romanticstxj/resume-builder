@@ -25,7 +25,14 @@ spring:
         options:
           model: Qwen/Qwen2.5-72B-Instruct
           temperature: 0.3
-          max-tokens: 8000
+#          max-tokens: 8000
+
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: false
 
   jackson:
     time-zone: GMT+8

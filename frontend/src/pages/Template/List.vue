@@ -2,10 +2,26 @@
   <div class="template-list">
     <div class="header">
       <h1>模板管理</h1>
-      <t-button theme="primary" @click="handleCreate">
-        <template #icon><add-icon /></template>
-        新建模板
-      </t-button>
+      <t-space>
+        <template v-if="selectMode">
+          <span class="select-hint">已选 {{ selectedIds.size }} 项</span>
+          <t-button theme="danger" variant="outline" :disabled="selectedIds.size === 0" @click="handleBatchDelete">
+            <template #icon><t-icon name="delete" /></template>
+            删除所选
+          </t-button>
+          <t-button theme="default" @click="exitSelectMode">取消</t-button>
+        </template>
+        <template v-else>
+          <t-button theme="default" variant="outline" @click="enterSelectMode">
+            <template #icon><t-icon name="check-circle" /></template>
+            批量删除
+          </t-button>
+          <t-button theme="primary" @click="handleCreate">
+            <template #icon><add-icon /></template>
+            新建模板
+          </t-button>
+        </template>
+      </t-space>
     </div>
 
     <t-card class="filter-bar">
@@ -27,7 +43,10 @@
     <t-loading :loading="loading">
       <t-row :gutter="16">
         <t-col :span="6" v-for="template in templates" :key="template.id">
-          <t-card hover-shadow class="template-card" @click="handleView(template)">
+          <t-card hover-shadow class="template-card" :class="{ selected: selectedIds.has(template.id) }" @click="selectMode ? toggleSelect(template.id) : handleView(template)">
+            <div v-if="selectMode" class="select-checkbox">
+              <t-checkbox :checked="selectedIds.has(template.id)" @click.stop="toggleSelect(template.id)" />
+            </div>
             <div class="preview">
               <template-preview :template="template" :template-content="template.content" />
             </div>
@@ -35,7 +54,7 @@
               <div class="name">{{ template.name }}</div>
               <div class="category">{{ template.category }}</div>
               <div class="usage">使用次数: {{ template.usageCount }}</div>
-              <div class="actions">
+              <div v-if="!selectMode" class="actions">
                 <t-button size="small" theme="default" @click.stop="handleEdit(template)">编辑</t-button>
                 <t-popconfirm content="确定删除该模板吗？" @confirm="handleDelete(template.id)">
                   <t-button size="small" theme="danger" @click.stop>删除</t-button>
@@ -52,7 +71,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { getTemplateList, deleteTemplate } from '@/api/template'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import TemplatePreview from './components/TemplatePreview.vue'
@@ -60,9 +79,47 @@ import TemplatePreview from './components/TemplatePreview.vue'
 const router = useRouter()
 const loading = ref(false)
 const templates = ref([])
-const filterForm = ref({
-  category: ''
-})
+const filterForm = ref({ category: '' })
+
+// 批量选择
+const selectMode = ref(false)
+const selectedIds = ref(new Set())
+
+const enterSelectMode = () => {
+  selectMode.value = true
+  selectedIds.value = new Set()
+}
+
+const exitSelectMode = () => {
+  selectMode.value = false
+  selectedIds.value = new Set()
+}
+
+const toggleSelect = (id) => {
+  const s = new Set(selectedIds.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  selectedIds.value = s
+}
+
+const handleBatchDelete = () => {
+  if (selectedIds.value.size === 0) return
+  const dialog = DialogPlugin.confirm({
+    header: '确认批量删除',
+    body: `确定要删除选中的 ${selectedIds.value.size} 个模板吗？此操作不可恢复。`,
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        await Promise.all([...selectedIds.value].map(id => deleteTemplate(id)))
+        MessagePlugin.success(`已删除 ${selectedIds.value.size} 个模板`)
+        dialog.hide()
+        exitSelectMode()
+        loadTemplates()
+      } catch (error) {
+        MessagePlugin.error('部分删除失败，请重试')
+      }
+    }
+  })
+}
 
 const loadTemplates = async () => {
   loading.value = true
@@ -131,10 +188,29 @@ onMounted(() => {
 .template-card {
   cursor: pointer;
   transition: transform 0.2s;
+  position: relative;
 }
 
 .template-card:hover {
   transform: translateY(-4px);
+}
+
+.template-card.selected {
+  outline: 2px solid var(--td-brand-color);
+  background: #f0f7ff;
+}
+
+.select-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
+.select-hint {
+  font-size: 14px;
+  color: #666;
+  line-height: 32px;
 }
 
 .preview {
