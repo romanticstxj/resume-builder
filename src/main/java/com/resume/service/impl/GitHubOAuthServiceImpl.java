@@ -19,6 +19,7 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -33,6 +34,7 @@ public class GitHubOAuthServiceImpl {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenServiceImpl refreshTokenService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${proxy.host:}")
@@ -91,7 +93,22 @@ public class GitHubOAuthServiceImpl {
                 ? githubUser.get("email").asText() : null;
 
         // 3. 查找或创建用户
+        // 优先按 githubId 查找，其次按 email 绑定已有账号，最后创建新用户
         User user = userRepository.findByGithubId(githubId).orElseGet(() -> {
+            // 若 email 不为空，尝试绑定已有账号
+            if (email != null && !email.isEmpty()) {
+                Optional<User> existingUser = userRepository.findByEmail(email);
+                if (existingUser.isPresent()) {
+                    User existing = existingUser.get();
+                    existing.setGithubId(githubId);
+                    if (existing.getOauthProvider() == null) {
+                        existing.setOauthProvider("github");
+                    }
+                    log.info("GitHub OAuth: 绑定已有账号 email={}, userId={}", email, existing.getId());
+                    return userRepository.save(existing);
+                }
+            }
+            // 创建新用户
             User newUser = new User();
             newUser.setGithubId(githubId);
             newUser.setUsername(login);
@@ -107,16 +124,16 @@ public class GitHubOAuthServiceImpl {
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
 
-        // 4. 生成 JWT，subject 用 github_id 前缀区分
-        String subject = user.getEmail() != null ? user.getEmail() : "github:" + githubId;
-        String token = jwtUtil.generateToken(subject);
+        // 4. 生成 JWT，subject = "user:{id}"，统一格式
+        String token = jwtUtil.generateTokenForUser(user.getId());
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
         userInfo.setId(user.getId());
         userInfo.setUsername(user.getUsername());
         userInfo.setEmail(user.getEmail());
 
-        return new LoginResponse(token, userInfo);
+        return new LoginResponse(token, refreshToken, userInfo);
     }
 
     private String exchangeCodeForToken(String code) {

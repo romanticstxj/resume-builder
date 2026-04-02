@@ -5,6 +5,6 @@ import com.resume.dto.request.RegisterRequest;
 import com.resume.dto.response.LoginResponse;
 
 public interface AuthService {
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request, String clientIp);
     void register(RegisterRequest request);
 }

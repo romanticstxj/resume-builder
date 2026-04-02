@@ -26,6 +26,10 @@ onMounted(async () => {
     const res = await githubCallback(code)
     // res 已被 axios 拦截器解包为 { token, userInfo }
     userStore.setToken(res.token)
+    if (res.refreshToken) {
+      const expiresAt = Date.now() + 7 * 24 * 3600 * 1000
+      userStore.setRefreshToken(res.refreshToken, expiresAt)
+    }
     userStore.setUserInfo(res.userInfo)
     MessagePlugin.success('登录成功')
     router.push('/')

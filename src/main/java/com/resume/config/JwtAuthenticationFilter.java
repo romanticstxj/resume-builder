@@ -10,11 +10,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -22,6 +24,21 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+
+    // 这些路径不需要有效 token，即使携带了过期 token 也直接放行
+    private static final List<String> PUBLIC_PATHS = List.of(
+            "/api/auth/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-ui.html",
+            "/actuator/health"
+    );
+
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    private boolean isPublicPath(String uri) {
+        return PUBLIC_PATHS.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, uri));
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,8 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } else {
-                // Token present but invalid or expired — return 401 immediately
+            } else if (!isPublicPath(request.getRequestURI())) {
+                // Token 无效且不是公开路径，才返回 401
                 log.warn("[Auth] Invalid or expired JWT token for request: {}", request.getRequestURI());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json;charset=UTF-8");

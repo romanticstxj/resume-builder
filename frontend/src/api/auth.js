@@ -23,3 +23,10 @@ export const getGithubClientId = () => {
 export const githubCallback = (code) => {
   return request({ url: `/auth/github/callback?code=${code}`, method: 'post' })
 }
+
+export const logoutApi = (refreshToken) => {
+  return request({
+    url: `/auth/logout${refreshToken ? `?refreshToken=${refreshToken}` : ''}`,
+    method: 'post'
+  })
+}

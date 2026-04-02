@@ -97,12 +97,28 @@ router.beforeEach((to, from, next) => {
       next('/login')
       return
     }
-    // token 存在但已过期：强制登出并提示
+    // access token 过期时，检查 refresh token 是否还有效
+    // 如果 refresh token 也没有或过期，才强制登出
+    // 注意：实际刷新由 axios 拦截器在第一个 API 请求时自动处理
+    // 路由守卫只负责"完全没有凭证"的情况
     if (isTokenExpired(userStore.token)) {
-      console.warn('[Auth] Token expired on navigation, forcing logout')
-      userStore.logout()
-      MessagePlugin.warning('登录已过期，请重新登录')
-      next('/login')
+      const rtExpired = !userStore.refreshToken || userStore.refreshTokenExpiresAt < Date.now()
+      if (rtExpired) {
+        // refresh token 也过期，清除本地状态并跳登录
+        console.warn('[Auth] Both tokens expired on navigation, forcing logout')
+        userStore.token = ''
+        userStore.refreshToken = ''
+        userStore.userInfo = null
+        localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('userInfo')
+        MessagePlugin.warning('登录已过期，请重新登录')
+        next('/login')
+        return
+      }
+      // access token 过期但 refresh token 有效，放行
+      // 页面加载后第一个 API 请求会触发 axios 拦截器自动刷新
+      next()
       return
     }
   }

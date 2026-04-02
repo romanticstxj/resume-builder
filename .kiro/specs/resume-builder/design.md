@@ -1,6 +1,6 @@
 # Resume Builder — 设计文档
 
-> 基于 requirements.md 及现有实现整理，最后更新：2026-03-28
+> 基于 requirements.md 及现有实现整理，最后更新：2026-04-02
 
 ---
 
@@ -48,19 +48,30 @@ Spring Boot 3.2 (port 8080)
 
 ## 2. 数据库设计
 
-### 2.1 当前表结构（V1~V8 迁移后）
+### 2.1 当前表结构（V1~V11 迁移后）
 
 #### users
 | 列 | 类型 | 说明 |
 |----|------|------|
 | id | BIGSERIAL PK | |
 | username | VARCHAR(50) UNIQUE NOT NULL | |
-| email | VARCHAR(100) UNIQUE NOT NULL | 登录凭证 |
-| password | VARCHAR(255) NOT NULL | BCrypt 加密 |
+| email | VARCHAR(100) UNIQUE | 登录凭证，OAuth 用户可为空 |
+| password | VARCHAR(255) | BCrypt 加密，OAuth 用户可为空 |
+| github_id | VARCHAR(50) | GitHub OAuth 用户 ID |
+| oauth_provider | VARCHAR(20) | 'github' 等 |
 | phone | VARCHAR(20) | |
 | avatar_url | VARCHAR(255) | |
 | status | INTEGER DEFAULT 1 | 1=启用 0=禁用 |
 | created_at / updated_at | TIMESTAMP | 触发器自动维护 |
+
+#### refresh_tokens
+| 列 | 类型 | 说明 |
+|----|------|------|
+| id | BIGSERIAL PK | |
+| user_id | BIGINT FK→users | |
+| token | VARCHAR(255) UNIQUE NOT NULL | refresh token 值 |
+| expires_at | TIMESTAMP NOT NULL | 过期时间（7 天） |
+| created_at | TIMESTAMP | |
 
 #### resumes
 | 列 | 类型 | 说明 |
@@ -199,10 +210,28 @@ POST /api/auth/login
 
 **JWT 机制：**
 - 算法：HS256，密钥从 `jwt.secret` 配置读取（≥256 bit）
-- 有效期：`jwt.expiration`（默认 86400000ms = 24h）
-- Subject：用户 email
+- Access Token 有效期：`jwt.expiration`（默认 86400000ms = 24h），Subject 为 `user:{id}`
+- Refresh Token 有效期：7 天，存储在 `refresh_tokens` 表
 - 过滤器：`JwtAuthenticationFilter` 在 `UsernamePasswordAuthenticationFilter` 之前执行，解析 `Authorization: Bearer <token>` 并写入 `SecurityContextHolder`
 - 白名单：`/api/auth/**`、`/swagger-ui/**`、`/v3/api-docs/**`、`/actuator/health`
+
+**GitHub OAuth 流程：**
+```
+GET /api/auth/github/callback?code=xxx
+  → GitHubOAuthServiceImpl.handleCallback(code)
+  → 用 code 换 access_token（GitHub API）
+  → 用 access_token 获取 GitHub 用户信息
+  → 按优先级查找用户：
+      1. findByGithubId(githubId) → 已有 OAuth 用户，直接使用
+      2. findByEmail(email) → 邮箱已存在，绑定 githubId 到已有账号
+      3. 创建新用户
+  → 生成 JWT + refresh token，返回 LoginResponse
+```
+
+**登录防暴力破解（LoginRateLimiter）：**
+- 同一 IP 或邮箱连续失败 5 次后锁定 15 分钟
+- 使用 Guava Cache 内存计数（无 Redis 依赖）
+- 超限返回 429，提示"登录尝试过多，请稍后再试"
 
 ### 3.2 简历模块
 
@@ -401,7 +430,10 @@ frontend/src/
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/auth/register` | 注册 |
-| POST | `/api/auth/login` | 登录，返回 JWT |
+| POST | `/api/auth/login` | 登录，返回 JWT + refresh token |
+| POST | `/api/auth/refresh` | 用 refresh token 换新 access token |
+| POST | `/api/auth/logout` | 登出，使 refresh token 失效 |
+| GET | `/api/auth/github/callback` | GitHub OAuth 回调 |
 
 ### 简历
 | 方法 | 路径 | 说明 |
@@ -586,13 +618,72 @@ private Long getCurrentUserId() {
 
 ---
 
-## 8. 技术债务
+## 8. 技术债务与待实现
 
-| 问题 | 优先级 | 说明 |
+### 8.1 已知技术债务
+
+| 问题 | 优先级 | 状态 |
 |------|--------|------|
-| AiController userId 硬编码为 1L | 高 | 影响多用户场景 |
-| 登出功能缺失 | 中 | 前端清除 token 即可，后端可加 token 黑名单 |
-| Token 自动刷新 | 中 | 前端拦截 401 后刷新 token |
-| 缺少单元/集成测试 | 中 | 核心 Service 层需覆盖 |
-| PDF 导出为服务端生成 | 低 | 当前返回 HTML，依赖浏览器打印 |
-| 前后端状态值统一 | 低 | parse_tasks.status 已修复，需全面排查 |
+| AI 解析超 token 截断 | 高 | 待实现 |
+| 卡死任务恢复（processing 超 10min 重置） | 高 | 待实现 |
+| 注册时 username 唯一性校验 | 中 | 待实现 |
+| 注册后自动登录 | 中 | 待实现 |
+| `/api/auth/me` 接口 | 中 | 待实现 |
+| refresh token 定期清理 | 中 | 待实现 |
+| 密码强度校验 | 低 | 待实现 |
+| 前端登出按钮 | 中 | 待实现 |
+| 缺少单元/集成测试 | 中 | 待实现 |
+| PDF 服务端生成 | 低 | 待实现 |
+| AuthController 清理未使用 import | 低 | 待实现 |
+
+### 8.2 近期规划功能设计
+
+#### AI 解析超 token 截断
+在 `ResumeParserServiceImpl.parse()` 中，调用 AI 前对 `fileContent` 做预处理：
+```java
+// 去除多余空白行
+fileContent = fileContent.replaceAll("(\r?\n){3,}", "\n\n").trim();
+// 截断至 7000 字符
+final int MAX_CHARS = 7000;
+boolean truncated = fileContent.length() > MAX_CHARS;
+if (truncated) fileContent = fileContent.substring(0, MAX_CHARS);
+// prompt 中注明截断
+String truncationNote = truncated ? "（注意：原文内容过长，已截取前部分）" : "";
+```
+
+#### 卡死任务恢复
+在 `RetryScheduler` 中新增扫描逻辑：
+```java
+@Scheduled(fixedDelay = 60000)
+public void recoverStuckTasks() {
+    // 将 status='processing' 且 processing_at < now-10min 的任务重置为 pending
+    taskService.resetStuckTasks(LocalDateTime.now().minusMinutes(10));
+}
+```
+需在 `ParseTaskMapper` 中新增 `resetStuckTasks(LocalDateTime threshold)` 方法。
+
+#### 富文本编辑器升级
+- 编辑器：已引入 Tiptap（`RichTextEditor.vue` 已实现），需在 `Editor.vue` 中将 `experience.description`、`projects.description` 等字段替换为 `<RichTextEditor>`
+- 存储：content JSON 中对应字段改为 HTML 字符串
+- 渲染：`ResumeRenderServiceImpl` 中对应字段直接输出 HTML（已是 innerHTML，无需额外处理）
+- 导出：Word 导出时需解析 HTML 为 POI 段落（需升级 `exportToWord` 方法）
+
+### 8.3 中期规划功能设计
+
+#### 简历翻译
+- 新增 Flyway 迁移 V12：`resumes` 表加 `translated_from_id BIGINT`
+- 新增 `ResumeTranslateService`，调用 Spring AI 翻译 content 各字段
+- 新增接口 `POST /api/ai/translate-resume/{id}`，返回新创建的简历 ID
+- 前端：简历列表/编辑器加"翻译为英文"按钮
+
+#### AI 对话式简历优化
+- 新增 Flyway 迁移 V13：创建 `ai_conversations` 表（id, resume_id, user_id, messages JSONB, stage, created_at）
+- 新增 `OptimizerChatService`，实现状态机：`evaluation → direction → content_select → suggestion → confirmation`
+- 新增接口：`POST /api/ai/optimize/chat`、`POST /api/ai/optimize/apply-suggestion`
+- 前端：新增 `AiOptimizeChat.vue` 聊天界面
+
+#### 简历版本控制
+- 新增 Flyway 迁移 V14：创建 `resume_versions` 表（id, resume_id, version_num, content JSON, created_at）
+- 在 `ResumeService.update()` 中，保存前先将当前版本写入 `resume_versions`
+- 新增接口：`GET /api/resumes/{id}/versions`、`POST /api/resumes/{id}/versions/{versionId}/restore`
+- 前端：编辑器右上角加"历史版本"入口

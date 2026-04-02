@@ -1,5 +1,6 @@
 package com.resume.controller;
 
+import com.resume.config.SecurityUtils;
 import com.resume.dto.ApiResponse;
 import com.resume.dto.request.TemplateCreateRequest;
 import com.resume.dto.request.TemplateUpdateRequest;
@@ -44,7 +45,7 @@ public class TemplateController {
     @PostMapping
     @Operation(summary = "创建模板")
     public ApiResponse<Template> createTemplate(@RequestBody TemplateCreateRequest request) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = SecurityUtils.getCurrentUserId();
         Template template = templateService.create(request, userId);
         return ApiResponse.success(template);
     }
@@ -54,7 +55,7 @@ public class TemplateController {
     public ApiResponse<Template> updateTemplate(
             @PathVariable Long id,
             @RequestBody TemplateUpdateRequest request) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = SecurityUtils.getCurrentUserId();
         Template template = templateService.update(id, request, userId);
         return ApiResponse.success(template);
     }
@@ -62,7 +63,7 @@ public class TemplateController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除模板")
     public ApiResponse<Void> deleteTemplate(@PathVariable Long id) {
-        Long userId = 1L; // TODO: 从JWT获取用户ID
+        Long userId = SecurityUtils.getCurrentUserId();
         templateService.delete(id, userId);
         return ApiResponse.success(null);
     }

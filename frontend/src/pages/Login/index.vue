@@ -27,6 +27,7 @@
             placeholder="请输入密码"
             size="large"
             clearable
+            @keyup.enter="handleLogin"
           >
             <template #prefix-icon>
               <t-icon name="lock-on" />
@@ -34,6 +35,12 @@
           </t-input>
         </t-form-item>
         
+        <t-form-item>
+          <div class="remember-row">
+            <t-checkbox v-model="rememberMe">记住我</t-checkbox>
+          </div>
+        </t-form-item>
+
         <t-form-item>
           <t-button
             type="primary"
@@ -96,6 +103,8 @@ const formData = ref({
   password: ''
 })
 
+const rememberMe = ref(true)
+
 const rules = {
   email: [
     { required: true, message: '请输入邮箱', type: 'error' },
@@ -113,7 +122,7 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    await userStore.login(formData.value)
+    await userStore.login(formData.value, rememberMe.value)
     MessagePlugin.success('登录成功')
     router.push('/')
   } catch (error) {
@@ -171,6 +180,12 @@ const handleGithubLogin = async () => {
 .logo-section p {
   font-size: 14px;
   color: #666;
+}
+
+.remember-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .footer {

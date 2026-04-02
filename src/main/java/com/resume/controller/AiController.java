@@ -1,5 +1,6 @@
 package com.resume.controller;
 
+import com.resume.config.SecurityUtils;
 import com.resume.dto.ApiResponse;
 import com.resume.dto.Page;
 import com.resume.dto.response.ParseResumeResponse;
@@ -49,10 +50,9 @@ public class AiController {
 
             log.info("提交简历解析任务: {}, 语言: {}", file.getOriginalFilename(), language);
 
-            Long userId = 1L; // TODO: 从JWT获取用户ID
+            Long userId = SecurityUtils.getCurrentUserId();
 
             String plaintext = FileParserUtil.extractText(file);
-
             ParseTask task = taskService.createTask(file, userId, plaintext, language);
             log.info("任务创建成功: {}", task.getId());
 
@@ -96,7 +96,7 @@ public class AiController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
         try {
-            Long userId = 1L; // TODO: 从JWT获取用户ID
+            Long userId = SecurityUtils.getCurrentUserId();
             Page<ParseTask> tasks = taskService.getTasksByUserId(userId, page, size);
             // Page constructor: Page(List<T> content, int pageNumber, int pageSize, long totalElements)
             return ApiResponse.success(new Page<>(

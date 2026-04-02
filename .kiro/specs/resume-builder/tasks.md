@@ -2,111 +2,148 @@
 
 ## 状态说明
 - [ ] 待完成
+- [-] 进行中
 - [x] 已完成
 
 ---
 
 ## 已完成功能
 
-### 后端
+### 后端基础
 - [x] 项目初始化（Spring Boot 3.2 + MyBatis + PostgreSQL + Flyway）
-- [x] 用户认证（注册/登录，JWT 简化版）
+- [x] 用户认证（注册/登录，BCrypt 加密，JWT access token + refresh token）
+- [x] GitHub OAuth 登录（绑定已有邮箱账号）
+- [x] 登录防暴力破解（LoginRateLimiter，5 次失败锁定 15 分钟）
+- [x] 全局异常处理（GlobalExceptionHandler）
 - [x] 简历 CRUD API
-- [x] 模板 CRUD API（含分类查询、使用次数统计）
-- [x] Flyway 数据库迁移（V1~V6）
-- [x] AI 简历解析（PDF/Word 上传 + 异步任务队列）
+- [x] 模板 CRUD API（含分类查询、使用次数统计、权限控制）
+- [x] Flyway 数据库迁移（V1~V11）
+- [x] AI 简历解析（PDF/Word/TXT 上传 + 异步任务队列）
 - [x] AI 内容生成（Spring AI + SiliconFlow/Qwen2.5-72B）
-- [x] 简历渲染服务（模板 + 数据 → HTML）
-- [x] Word 导出（Apache POI）
-- [x] 解析任务事件驱动（TaskCreatedEvent + AIParseListener）
-- [x] 解析任务定时重试（RetryScheduler，指数退避）
-- [x] AI 调用限流（Guava RateLimiter，3 QPS，AIParseListener 和 RetryScheduler 共享同一 Bean）
+- [x] 简历渲染服务（模板 + 数据 → HTML，ResumeSectionEnum 枚举驱动）
+- [x] Word 导出（Apache POI，支持主题颜色/字体）
+- [x] 解析任务事件驱动（TaskCreatedEvent + AIParseListener @Async）
+- [x] 解析任务定时重试（RetryScheduler，指数退避，最多 3 次）
+- [x] AI 调用限流（Guava RateLimiter，3 QPS，全局共享）
+- [x] AiController userId 从 SecurityContextHolder 获取（非硬编码）
 
-### 前端
+### 前端基础
 - [x] 项目初始化（Vue 3 + Vite + TDesign + Pinia）
-- [x] 路由配置 + 登录守卫
-- [x] 登录/注册页面
+- [x] 路由配置 + 登录守卫（access token 过期检查 + refresh token 有效性判断）
+- [x] 登录/注册页面（含记住我、回车提交）
+- [x] GitHub OAuth 回调页面
 - [x] 主布局（侧边栏 + 顶部导航）
-- [x] 简历列表页
-- [x] 简历编辑器页
+- [x] 简历列表页（含删除、复制、JSON 导入/导出）
+- [x] 简历编辑器页（左侧表单 + 右侧实时预览，中英文切换）
 - [x] 模板市场页
 - [x] 模板编辑页
 - [x] 模板预览组件（动态渲染）
 - [x] AI 生成页
-- [x] 解析任务列表页（含状态显示、查看结果、重试）
-- [x] 简历导入组件（ResumeImport.vue）
+- [x] 解析任务列表页（含状态显示、查看结果、重试、取消）
+- [x] 简历导入组件（ResumeImport.vue，文件上传 + 轮询 + 结果预览）
+- [x] axios 拦截器（自动附加 token，401 自动刷新，统一错误提示）
+- [x] Pinia store（token/refreshToken/userInfo，login/logout/register）
+- [x] 富文本编辑器组件（RichTextEditor.vue，基于 Tiptap）
 
 ---
 
-## 待完成
-- [x] 导出pdf和预览里面，skills模块的颜色和其他模块保持一致，现在是红色的
-- [x] projects模块加上Company字段
-- [x] Projects和Works模块的Role都换行，用区别于标题和内容的样式显示
-- [x] Work Experience模块的Role也换行，用区别于标题和内容的样式显示；Projects模块的Company和Role在一行，Company在前显示，Role在后
-- [x] Bullet Point的宽度小一点；导出和预览的照片再稍微比例放大一点点
-- [x] 添加简历删除功能，模板删除也需要
-- [x] 开发环境中帮我后端代码弄成热启动，不需要每次改动代码后重启了
-- [x] 去掉简历自身的sectionOrder，只用模板里的sectionOrder进行渲染和导出，这个sectionOrder和简历自身绑定估计是之前的误会
+## 下一阶段：近期任务（高优先级）
 
-### 高优先级（影响核心体验）
+### AI 解析健壮性
 
-- [x] JWT 拦截器完善（当前为简化版，缺少 Token 验证中间件）
-- [x] 密码加密（当前明文存储，需改为 BCrypt）
-- [x] 全局异常处理（GlobalExceptionHandler）
-- [x] 前端 axios 拦截器（统一错误处理、401 自动跳转登录）
-- [x] 简历预览/导出功能完善（前端导出按钮接通后端接口）
-- [x] 前端表单校验和错误提示优化
+- [ ] **AI 解析超 token 截断**
+  - 在 `ResumeParserServiceImpl.parse()` 中，调用 AI 前先去除多余空白行，再截断至约 7000 字符
+  - prompt 中注明"内容已截取"，避免直接报错
+  - 同步处理 `parse-resume-sync` 接口
 
-### 简历编辑器优化
+- [ ] **卡死任务恢复**
+  - `RetryScheduler` 新增扫描：`status='processing'` 且 `processing_at < now - 10min` 的任务重置为 `pending`
+  - 在 `ParseTaskMapper` 中新增 `resetStuckTasks(LocalDateTime threshold)` 方法
 
-- [x] 简历模块标题中英文切换（根据 content.language 字段渲染对应语言标题）
-- [x] 修正默认模块排序：个人简介→专业技能→工作经历→项目经历→个人作品→教育经历→荣誉证书，移除"个人总结"模块
-- [x] 导入/创建时支持中英文语言选择，AI 解析按语言生成对应字段内容（V8 迁移：parse_tasks.language 列）
+### 认证补全
 
-### 模块注册表重构（架构改善）
+- [ ] **后端：注册时 username 唯一性校验**
+  - `UserMapper` 加 `existsByUsername`，注册时同步检查，重复时返回明确错误信息
 
-- [x] 后端：新建 `ResumeSectionEnum` 枚举，包含 key、中英文标签、渲染函数引用
-- [x] 后端：重构 `ResumeRenderServiceImpl`，将 switch 替换为枚举驱动的渲染 Map
-- [x] 前端：新建 `src/config/sectionRegistry.js`，统一注册所有模块元数据
-- [x] 前端：重构 `ResumeRenderer.vue`，从注册表读取 `defaultSectionOrder` 和 `sectionLabels`
+- [ ] **后端：注册后自动登录**
+  - 注册接口改为返回 `LoginResponse`（含 token + refreshToken）
+  - 前端注册成功后直接存 token 并跳转主页，无需二次登录
 
-### JSON 导入导出
+- [ ] **后端：`/api/auth/me` 接口**
+  - 返回当前登录用户信息（id、username、email、avatarUrl）
+  - 前端刷新页面时调用此接口同步最新用户信息，替代依赖 localStorage 缓存
 
-- [x] 前端 Editor.vue：导出按钮新增"导出 JSON"选项，构造 `{ _version, title, content }` 并下载
-- [x] 前端 Resume/List.vue：新增"从 JSON 导入"入口，读取文件 → 校验 → 调用创建接口 → 跳转编辑器
+- [ ] **后端：refresh token 定期清理**
+  - 新建 `TokenCleanupScheduler`，`@Scheduled(cron = "0 0 3 * * ?")` 每天凌晨 3 点调用 `RefreshTokenServiceImpl.cleanExpired()`
 
-### 中优先级（完善功能）
+- [ ] **前端：登出按钮**
+  - 在主布局顶部导航用户头像/名称下拉菜单中加"退出登录"
+  - 调用 `userStore.logout()`（已实现，调用后端 logout 接口 + 清除本地 token）
 
-- [ ] AI 解析超 token 限制处理：上传文件内容超过模型 max_tokens 时，在 `ResumeParserServiceImpl` 中对 `fileContent` 做截断（保留前 N 个字符，约 6000~8000 字符），截断前先去除多余空白行，并在 prompt 中注明"内容已截取"，避免直接报错
-- [ ] 简历翻译（中→英，AI-SPRINT.md 模块2）
-  - 后端翻译服务 + `/api/ai/translate-resume/{id}`
-  - 模板多语言标签（section_labels）
-  - 前端翻译入口和 TranslationDialog
-- [ ] AI 对话式简历优化（AI-SPRINT.md 模块3）
-  - 对话状态机（评价→方向→内容→建议→确认）
-  - 后端 OptimizerChatService
-  - 前端聊天界面 AiOptimizeChat.vue
-- [ ] 简历版本控制（历史版本记录、回滚）
-- [ ] 登出功能 + Token 自动刷新
-- [ ] application.yml 中 API Key 改为环境变量
+### 代码质量
 
-### 低优先级（二期规划）
+- [ ] **后端：`AuthController` 清理未使用 import**
+  - 删除未使用的 `SecurityUtils` import，消除编译警告
 
-- [ ] 面试管理模块（JD 分析、简历匹配、面试流程追踪）
+- [ ] **后端：密码强度校验**
+  - 注册时要求密码包含字母 + 数字，在 `RegisterRequest` 加 `@Pattern` 注解
+
+---
+
+## 下一阶段：中期任务
+
+### 富文本编辑器集成
+
+- [ ] **前端：Editor.vue 集成 RichTextEditor**
+  - 将 `experience.description`、`projects.description`、`works.description` 字段替换为 `<RichTextEditor>` 组件
+  - 存储格式改为 HTML 字符串（content JSON 中对应字段）
+
+- [ ] **后端：Word 导出支持 HTML 内容**
+  - `ResumeRenderServiceImpl.exportToWord()` 中，对 HTML 格式的描述字段做基础解析（去标签或保留段落结构）
+
+### 简历翻译
+
+- [ ] **后端：简历翻译服务**
+  - 新增 `ResumeTranslateService`，调用 Spring AI 翻译 content 各字段（保留结构，仅翻译文本值）
+  - 新增接口 `POST /api/ai/translate-resume/{id}`，翻译结果创建为新简历，返回新简历 ID
+
+- [ ] **前端：翻译入口**
+  - 简历列表页和编辑器页加"翻译为英文"按钮
+  - 翻译完成后跳转到新简历编辑器
+
+### 简历版本控制
+
+- [ ] **后端：版本控制数据层**
+  - 新增 Flyway 迁移 V12：创建 `resume_versions` 表（id, resume_id, version_num, content JSON, created_at）
+  - `ResumeMapper` 新增 `insertVersion`、`listVersions`、`getVersion` 方法
+
+- [ ] **后端：版本控制接口**
+  - `ResumeService.update()` 中，保存前先将当前版本写入 `resume_versions`
+  - 新增接口：`GET /api/resumes/{id}/versions`、`POST /api/resumes/{id}/versions/{versionId}/restore`
+
+- [ ] **前端：历史版本入口**
+  - 编辑器右上角加"历史版本"按钮，弹出版本列表，支持预览和回滚
+
+### AI 对话式简历优化
+
+- [ ] **后端：对话优化服务**
+  - 新增 Flyway 迁移 V13：创建 `ai_conversations` 表（id, resume_id, user_id, messages JSONB, stage, created_at）
+  - 新增 `OptimizerChatService`，实现状态机：`evaluation → direction → content_select → suggestion → confirmation`
+  - 新增接口：`POST /api/ai/optimize/chat`、`POST /api/ai/optimize/apply-suggestion`
+
+- [ ] **前端：聊天优化界面**
+  - 新增 `AiOptimizeChat.vue` 聊天界面
+  - 嵌入编辑器右侧面板或独立页面 `/ai/optimize/:resumeId`
+
+---
+
+## 低优先级（二期规划）
+
+- [ ] 服务端 PDF 生成（iText 或 wkhtmltopdf，替代浏览器打印）
 - [ ] 简历分享（生成分享链接、有效期、密码保护）
-- [ ] 数据统计（面试转化率、AI 使用量）
 - [ ] 响应式设计（移动端适配）
-- [ ] Docker 部署 + CI/CD
-
----
-
-## 技术债务
-
-- [ ] 密码明文存储 → BCrypt 加密
-- [ ] JWT 简化版 → 完整验证链路
-- [ ] 缺少单元测试和集成测试
-- [ ] 前后端状态值不统一（已修复 `success`/`completed`，需全面排查）
-- [ ] 日志规范化（统一 MDC 追踪 taskId）
-
-- [ ] 富文本编辑器：工作描述、项目描述等 textarea 升级为支持 bullet point、有序列表、左/右/居中对齐的富文本编辑器，存储格式改为 HTML，渲染时直接 v-html 输出，导出时同步渲染
-- [ ] 卡死任务恢复：`RetryScheduler` 扫描时，将 `status = 'processing'` 且 `processing_at < now - 10min` 的任务重置为 `pending`，防止 worker 崩溃后任务永久卡住
+- [ ] 面试管理模块（JD 分析、简历匹配、面试流程追踪）
+- [ ] 数据统计（AI 使用量、简历查看次数）
+- [ ] Docker 部署优化 + GitHub Actions CI/CD
+- [ ] 单元测试 + 集成测试（核心 Service 层覆盖）
+- [ ] 日志规范化（MDC 统一追踪 taskId）

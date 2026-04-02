@@ -23,9 +23,7 @@ public class UserRepository {
     public Optional<User> findByGithubId(String githubId) {
         User user = userMapper.findByGithubId(githubId);
         return Optional.ofNullable(user);
-    }
-
-    public boolean existsByEmail(String email) {
+    }    public boolean existsByEmail(String email) {
         return userMapper.existsByEmail(email);
     }
 

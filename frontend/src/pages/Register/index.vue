@@ -54,6 +54,7 @@
             placeholder="请确认密码"
             size="large"
             clearable
+            @keyup.enter="handleRegister"
           >
             <template #prefix-icon>
               <t-icon name="lock-on" />

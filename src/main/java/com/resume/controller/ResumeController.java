@@ -1,13 +1,12 @@
 package com.resume.controller;
 
+import com.resume.config.SecurityUtils;
 import com.resume.dto.ApiResponse;
 import com.resume.dto.Page;
 import com.resume.dto.request.ResumeCreateRequest;
 import com.resume.dto.request.ResumeUpdateRequest;
 import com.resume.entity.Resume;
 import com.resume.entity.Template;
-import com.resume.entity.User;
-import com.resume.repository.UserRepository;
 import com.resume.service.ResumeRenderService;
 import com.resume.service.ResumeService;
 import com.resume.service.TemplateService;
@@ -17,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,11 +28,9 @@ public class ResumeController {
     private final ResumeService resumeService;
     private final ResumeRenderService resumeRenderService;
     private final TemplateService templateService;
-    private final UserRepository userRepository;
 
     private Long getCurrentUserId() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email).map(User::getId).orElse(1L);
+        return SecurityUtils.getCurrentUserId();
     }
 
     @PostMapping
