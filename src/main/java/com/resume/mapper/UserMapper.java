@@ -15,6 +15,9 @@ public interface UserMapper {
     @Select("SELECT COUNT(*) FROM users WHERE email = #{email}")
     boolean existsByEmail(@Param("email") String email);
 
+    @Select("SELECT COUNT(*) FROM users WHERE username = #{username}")
+    boolean existsByUsername(@Param("username") String username);
+
     @Insert("INSERT INTO users (username, email, password, github_id, avatar_url, oauth_provider, status, created_at) " +
             "VALUES (#{username}, #{email}, #{password}, #{githubId}, #{avatarUrl}, #{oauthProvider}, #{status}, #{createdAt})")
     @Options(useGeneratedKeys = true, keyProperty = "id")

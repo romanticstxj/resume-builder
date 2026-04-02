@@ -108,10 +108,13 @@ public class GitHubOAuthServiceImpl {
                     return userRepository.save(existing);
                 }
             }
-            // 创建新用户
+            // 创建新用户，username 冲突时加 githubId 后缀
+            String username = userRepository.existsByUsername(login)
+                    ? login + "_" + githubId
+                    : login;
             User newUser = new User();
             newUser.setGithubId(githubId);
-            newUser.setUsername(login);
+            newUser.setUsername(username);
             newUser.setEmail(email);
             newUser.setAvatarUrl(avatarUrl);
             newUser.setOauthProvider("github");

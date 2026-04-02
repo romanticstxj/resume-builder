@@ -27,6 +27,10 @@ public class UserRepository {
         return userMapper.existsByEmail(email);
     }
 
+    public boolean existsByUsername(String username) {
+        return userMapper.existsByUsername(username);
+    }
+
     public User save(User user) {
         if (user.getId() == null) {
             userMapper.insert(user);
