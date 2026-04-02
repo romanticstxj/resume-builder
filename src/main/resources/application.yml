@@ -60,3 +60,8 @@ mybatis:
 logging:
   level:
     com.resume: debug
+
+github:
+  oauth:
+    client-id: ${GITHUB_OAUTH_CLIENT_ID:your-api-key-here}
+    client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:your-api-key-here}
